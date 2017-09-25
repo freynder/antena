@@ -1,0 +1,139 @@
+# Antena
+
+Antena is an API to uniformely perform (a)synchronous http requests and websocket connections.
+
+## `Receptor`
+
+### `receptor = require("antena/receptor")(handlers)`
+
+* `handlers :: object`
+  * `onrequest(method, path, headers, body, callback)`
+    * `method :: string`
+    * `path :: string`
+    * `headers :: {string}`
+    * `body :: string`
+    * `callback(status, reason, headers, body)`
+      * `status :: number`
+      * `reason :: string`
+      * `headers :: {string}`
+      * `body :: string`
+  * `onconnect(path, websocket)`
+    * `path :: string`
+    * `websocket :: antena.Websocket`
+* `receptor :: antena.Receptor`
+
+### `require("antena/receptor/attach-server")(receptor, server)`
+
+* `receptor :: antena.Receptor`
+* `server :: http.Server`
+
+### `close = require("antena/receptor/attach-worker")(receptor, worker)`
+
+* `receptor :: antena.Receptor`
+* `worker :: Worker`
+* `terminate()`
+
+### `receptor2 = receptor1.merge(receptors)`
+
+* `receptor1 :: antena.Receptor`
+* `receptors :: {antena.Receptor}`
+* `receptor2 :: antena.Receptor`
+
+### `receptor2 = receptor1.trace(name)`
+
+* `receptor1 :: antena.Receptor`
+* `name :: string`
+* `receptor2 :: antena.Receptor`
+
+## `Emitter`
+
+### `emitter = require("antena/emitter/node")(host)`
+
+* `host :: string`
+* `emitter :: antena.Emitter`
+
+### `emitter = require("antena/emitter/browser")(host)`
+
+* `host :: string`
+* `emitter :: antena.Emitter`
+
+### `emitter = require("antena/emitter/webworker")(size)`
+
+* `size :: number`
+* `emitter :: antena.Emitter`
+
+### `emitter = require("antena/emitter/mock")(receptor)`
+
+* `receptor :: antena.Receptor`
+* `emitter :: antena.Emitter`
+
+### `emitter.request(method, path, headers, body, callback)`
+
+* `emitter :: antena.Emitter`
+* `method :: string`
+* `path :: string`
+* `headers :: {string}`
+* `body :: string`
+* `callback(error, status, reason, headers, body)`
+  * `error :: Error | null`
+  * `status :: number | undefined`
+  * `reason :: string | undefined`
+  * `headers :: {string} | undefined`
+  * `body :: string | undefined`
+
+### `[error2, status2, reason2, headers2, body2] = emitter.request(method1, path1, headers1, body1)`
+
+* `emitter :: antena.Emitter`
+* `method1 :: string`
+* `path1 :: string`
+* `headers1 :: {string}`
+* `body1 :: string`
+* `error2 :: Error | null`
+* `status2 :: number | undefined`
+* `reason2 :: string | undefined`
+* `headers2 :: {string} | undefined`
+* `body2 :: string | undefined`
+
+### `websocket = emitter.connect(path)`
+
+* `emitter :: antena.Emitter`
+* `path(string)`
+* `websocket :: antena.Websocket`
+
+### `emitters = emitter.split(splitters)`
+
+* `emitter :: antena.Emitter`
+* `splitter :: [string]`
+* `emitters :: {antena.Emitter}`
+
+### `emitter2 = emitter1.trace(name)`
+
+* `emitter1 :: antena.Emitter`
+* `name :: string`
+* `emitter2 :: antena.Emitter`
+
+## `Websocket`
+
+### Event: `"open"`
+
+### `websocket.send(message)`
+
+* `websocket :: antena.Websocket`
+* `message :: string | ArrayBuffer`
+
+### Event: `"message"`
+
+* `message :: string | ArrayBuffer`
+
+### `websocket.close(code, reason)`
+
+* `websocket :: antena.Websocket`
+* `code(number)`
+* `reason(string)`
+
+### Event: `"close"`
+
+* `code :: number`
+* `reason :: string`
+
+### Event: `"error"`
