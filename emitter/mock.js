@@ -15,9 +15,9 @@ function request (method, path, headers, body, callback) {
       "Mock emitters cannot handle synchronous HTTP requests since it ",
       "would involve transforming asynchronous calls into synchronous ",
       "calls. This is made difficult/impossible on purpose since doing ",
-      "so would break the run-to-completion semantic. There is a module ",
-      "called deasync which tries to circumvent this limitation but ",
-      "it does not support nested calls ",
+      "so would break the run-to-completion semantic. There is a node ",
+      "module called deasync which tries to circumvent this limitation ",
+      "but it does not support nested calls ",
       "cf: https://github.com/abbr/deasync/issues/83."
     ].join(""));
   }

@@ -1,21 +1,21 @@
-{ "name": "antena"
-, "description": "Uniform API for performing http(s) request and opening websocket connections"
-, "version": "0.0.0"
-, "author":
-    { "name": "Laurent Christophe"
-    , "email": "lachrist@vub.ac.be"
-    }
-, "repository": "lachrist/antena"
-, "license": "MIT"
-, "dependencies":
-    { "ws": "*"
-    , "browserify": "*"
-    }
-, "keywords":
-    [ "Request"
-    , "Connect"
-    , "Http"
-    , "WebSocket"
-    , "Upgrade"
-    ]
+{
+  "name": "antena",
+  "description": "API to uniformely perform (a)synchronous http requests and websocket connections",
+  "version": "0.0.0",
+  "author": {
+    "name": "Laurent Christophe",
+    "email": "lachrist@vub.ac.be"
+  },
+  "repository": "lachrist/antena",
+  "license": "MIT",
+  "dependencies": {
+    "ws": "3.2.x"
+  },
+  "keywords": [
+    "Request",
+    "Connect",
+    "Http",
+    "WebSocket",
+    "Upgrade"
+  ]
 }
