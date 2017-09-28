@@ -1,10 +1,10 @@
-# Antena
+# antena
 
 Antena is an API to uniformely perform (a)synchronous http requests and websocket connections.
 The end points of an Antena communication channel are different: one is called *receptor* while the other is called *emitter*.
 To be operational, receptors must be attached to a node http server or a web worker.
 Emitters must receive information to connect to a receptor during their creation.
-A [demo page](https://rawgit.com/lachrist/antena-demo/master/index.html) is available for toying with the Antena's api.
+A [demo page](https://rawgit.com/lachrist/antena-demo/master/index.html) is available for toying around.
 
 ```js
 var Receptor = require("antena/receptor");
@@ -44,7 +44,7 @@ emitters.ping.request("GET", "/", {}, "", function (error, status, reason, heade
 });
 ```
 
-```sh
+```
 pong
 HELLO!
 ```
