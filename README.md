@@ -6,6 +6,49 @@ To be operational, receptors must be attached to a node http server or a web wor
 Emitters must receive information to connect to a receptor during their creation.
 A [demo page](https://rawgit.com/lachrist/antena-demo/master/index.html) is available for toying with the Antena's api.
 
+```js
+var Receptor = require("antena/receptor");
+var AttachServer = require("antena/receptor/attach-server");
+var Http = require("http");
+
+var server = Http.createServer();
+var receptor = Receptor({}).merge({
+  "echo": Receptor({
+    onconnect: function (path, con) {
+      con.on("message", function (message) {
+        con.send(message.toUpperCase());
+      });
+    }
+  }),
+  "ping": Receptor({
+    onrequest: function (method, path, headers, body, callback) {
+      callback(200, "ok", {}, "pong");
+    }
+  })
+});
+AttachServer(receptor, server);
+server.listen(8080);
+```
+
+```js
+var Emitter = require("antena/emitter/node");
+
+var emitters = Emitter(8080).split(["ping", "echo"]);
+var con = emitters.echo.connect("/");
+con.on("message", function (message) { console.log(message) });
+con.on("open", function () { con.send("hello!") });
+emitters.ping.request("GET", "/", {}, "", function (error, status, reason, headers, body) {
+  if (error || status !== 200)
+    throw error || new Error(status+" "+reason);
+  console.log(body);
+});
+```
+
+```sh
+pong
+HELLO!
+```
+
 ## `Receptor`
 
 ### `receptor = require("antena/receptor")(handlers)`
