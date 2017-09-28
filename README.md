@@ -1,12 +1,16 @@
 # Antena
 
 Antena is an API to uniformely perform (a)synchronous http requests and websocket connections.
+The end points of an Antena communication channel are different: one is called *receptor* while the other is called *emitter*.
+To be operational, receptors must be attached to a node http server or a web worker.
+Emitters must receive information to connect to a receptor during their creation.
+A [demo page](https://rawgit.com/lachrist/antena-demo/master/index.html) is available for toying with the Antena's api.
 
 ## `Receptor`
 
 ### `receptor = require("antena/receptor")(handlers)`
 
-* `handlers :: object`
+* `handlers`
   * `onrequest(method, path, headers, body, callback)`
     * `method :: string`
     * `path :: string`
@@ -31,7 +35,7 @@ Antena is an API to uniformely perform (a)synchronous http requests and websocke
 
 * `receptor :: antena.Receptor`
 * `worker :: Worker`
-* `terminate()`
+* `close()`
 
 ### `receptor2 = receptor1.merge(receptors)`
 
@@ -57,7 +61,7 @@ Antena is an API to uniformely perform (a)synchronous http requests and websocke
 * `host :: string`
 * `emitter :: antena.Emitter`
 
-### `emitter = require("antena/emitter/webworker")(size)`
+### `emitter = require("antena/emitter/worker")(size)`
 
 * `size :: number`
 * `emitter :: antena.Emitter`
@@ -97,8 +101,14 @@ Antena is an API to uniformely perform (a)synchronous http requests and websocke
 ### `websocket = emitter.connect(path)`
 
 * `emitter :: antena.Emitter`
-* `path(string)`
+* `path :: string`
 * `websocket :: antena.Websocket`
+
+### `emitter2 = emitter1.fork(splitter)`
+
+* `emitter1 :: antena.Emitter`
+* `splitter :: string`
+* `emitter2 :: antena.Emitter`
 
 ### `emitters = emitter.split(splitters)`
 
@@ -113,6 +123,11 @@ Antena is an API to uniformely perform (a)synchronous http requests and websocke
 * `emitter2 :: antena.Emitter`
 
 ## `Websocket`
+
+### `state = websocket.readyState`
+
+* `websocket :: antena.Websocket`
+* `state : number`
 
 ### Event: `"open"`
 
@@ -137,3 +152,5 @@ Antena is an API to uniformely perform (a)synchronous http requests and websocke
 * `reason :: string`
 
 ### Event: `"error"`
+
+* `error :: Error`

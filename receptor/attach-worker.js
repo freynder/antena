@@ -8,10 +8,17 @@ module.exports = function (receptor, worker) {
   var views = null;
   var handlers = {
     message: pool.onmessage,
-    close: pool.onclose,
-    open: function (data) {
-      worker.postMessage(data);
-      Onconnect(receptor, data.path, pool.add(data.index));
+    close1: pool.onclose1,
+    close2: pool.onclose2,
+    open1: function (data) {
+      var index = pool.create();
+      pool.open(index, data.pair);
+      worker.postMessage({
+        name: "open2",
+        index: data.pair,
+        pair: index
+      });
+      Onconnect(receptor, data.path, pool.get(index));
     },
     sync: function (data) {
       Onrequest(receptor, data.method, data.path, data.headers, data.body, function (status, reason, headers, body) {
@@ -56,8 +63,15 @@ module.exports = function (receptor, worker) {
   };
   return function () {
     worker.terminate();
-    pool.terminate();
+    worker.onmessage = null;
+    for (var i=0; pool.get[i] !== void 0; i++) {
+      if (pool.get[i] !== null) {
+        pool.get[i].readyState = 3;
+        pool.get[i].emit("close", 1001, "CLOSE_GOING_AWAY")
+      }
+    };
     pool = null;
+    views = null;
     handlers = null;
   };
 };

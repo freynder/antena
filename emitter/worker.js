@@ -42,13 +42,13 @@ function request (method, path, headers, body, callback) {
 
 function connect (path) {
   path = path || "";
-  var index = this._poolfree();
+  var index = this._poolcreate();
   global.postMessage({
-    name: "open",
+    name: "open1",
     path: this._prefix+path,
-    index: index
+    pair: index
   });
-  return this._pooladd(index);
+  return this._poolget(index);
 }
 
 var singleton = false;
@@ -60,9 +60,10 @@ module.exports = function (size) {
   var callbacks = [];
   var pool = WorkerSocketPool(global);
   var handlers = {
-    close: pool.onclose,
+    close1: pool.onclose1,
+    close2: pool.onclose2,
     message: pool.onmessage,
-    open: pool.onopen,
+    open2: function (data) { pool.open(data.index, data.pair) },
     async: function (data) {
       callbacks[data.index](null, data.status, data.reason, data.headers, data.body);
       delete callbacks[data.index];
@@ -83,7 +84,7 @@ module.exports = function (size) {
   self._prefix = "";
   self._callbacks = callbacks;
   self._views = views;
-  self._pooladd = pool.add;
-  self._poolfree = pool.free;
+  self._poolcreate = pool.create;
+  self._poolget = pool.get;
   return self;
 };

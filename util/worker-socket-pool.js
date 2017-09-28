@@ -6,22 +6,21 @@ module.exports = function (poster) {
   var pool = [];
 
   function send (message) {
-    if (this !== pool[this._index])
+    if (this.readyState !== 1)
       throw new Error("INVALID_STATE_ERR");
     poster.postMessage({
       name: "message",
-      index: this._index,
+      index: this._pair,
       message: message instanceof ArrayBuffer ? message : ""+message
     });
   }
 
   function close (code, reason) {
-    if (this === pool[this._index]) {
-      pool[this._index] = null;
-      this.emit("close", code, reason);
+    if (this.readyState === 0 || this.readyState === 1) {
+      this.readyState = 2;
       poster.postMessage({
-        name: "close",
-        index: this._index,
+        name: "close1",
+        index: this._pair,
         code: parseInt(code),
         reason: ""+reason
       });
@@ -29,32 +28,50 @@ module.exports = function (poster) {
   }
 
   return {
-    free: function () {
-      index = pool.indexOf(null);
-      return index === -1 ? pool.length : index;
+    create: function () {
+      var index = 0;
+      while (pool[index])
+        index++;
+      pool[index] = new Events();
+      pool[index].send = send;
+      pool[index].close = close;
+      pool[index].readyState = 0;
+      return index;
     },
-    add: function (index) {
-      var con = new Events();
-      pool[index] = con;
-      con.send = send;
-      con.close = close;
-      con._index = index;
-      return con;
+    get: function (index) {
+      return pool[index];
     },
-    terminate: function () {
-      pool.forEach(function (con) { con && con.emit("close", 1001, "CLOSE_GOING_AWAY") });
-      pool = [];
-    },
-    onclose: function (data) {
-      pool[data.index].emit("close", data.code, data.reason);
-      pool[data.index] = null;
+    open: function (index, pair) {
+      pool[index]._pair = pair;
+      pool[index].readyState = 1;
+      pool[index].emit("open");
     },
     onmessage: function (data) {
-      pool[data.index].emit("message", data.message);
+      if (pool[data.index].readyState === 1) {
+        pool[data.index].emit("message", data.message);
+      } else if (pool[data.index].readyState !== 2) {
+        throw new Error("Inconsistent state");
+      }
     },
-    onopen: function (data) {
-      pool[data.index].emit("open");
+    onclose1: function (data) {
+      if (pool[data.index].readyState === 3)
+        throw new Error("Inconsistent state");
+      pool[data.index].readyState = 3;
+      pool[data.index].emit("close", data.code, data.reason);
+      poster.postMessage({
+        name: "close2",
+        index: pool[data.index]._pair,
+        code: data.code,
+        reason: data.reason
+      });
+      pool[data.index] = null;
+    },
+    onclose2: function (data) {
+      if (pool[data.index].readyState !== 2)
+        throw new Error("Inconsistent state");
+      pool[data.index].readyState = 3;
+      pool[data.index].emit("close", data.code, data.reason);
+      pool[data.index] = null;
     }
   };
-
 };
