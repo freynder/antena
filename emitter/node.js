@@ -5,7 +5,7 @@ var ChildProcess = require("child_process");
 var Ws = require("ws");
 var ParseHost = require("../util/parse-host.js");
 var ParseResponse = require("../util/parse-response.js");
-var Prototype = require("./prototype");
+var Factory = require("./factory.js");
 
 function request (method, path, headers, body, callback) {
   method = method || "GET";
@@ -30,10 +30,10 @@ function request (method, path, headers, body, callback) {
     return ParseResponse(result.stdout);
   }
   this._protocol.request({
-    method: method,
     hostname: this._host.hostname,
     port: this._host.port,
     socketPath: this._host.unix,
+    method: method,
     headers: headers,
     path: this._prefix+path,
     body: body
@@ -57,20 +57,15 @@ function connect (path) {
 module.exports = function (host, secure) {
   host = ParseHost(host);
   secure = secure ? "s" : "";
+  var emitter = Factory(request, connect);
+  emitter._host = host;
+  emitter._protocol = secure ? Https : Http;
   if (host.unix) {
-    var rprefix = "http"+secure+"://localhost";
-    var cprefix = "ws"+secure+"+unix://"+host.unix+":";
+    emitter._rprefix = "http"+secure+"://localhost";
+    emitter._cprefix = "ws"+secure+"+unix://"+host.unix+":";
   } else {
-    var rprefix = "http"+secure+"://"+host.hostname+(host.port?":"+host.port:"");
-    var cprefix = "ws"+secure+"://"+host.hostname+(host.port?":"+host.port:"");
+    emitter._rprefix = "http"+secure+"://"+host.hostname+(host.port?":"+host.port:"");
+    emitter._cprefix = "ws"+secure+"://"+host.hostname+(host.port?":"+host.port:"");
   }
-  var self = Object.create(Prototype);
-  self.request = request;
-  self.connect = connect;
-  self._prefix = "";
-  self._host = host;
-  self._rprefix = rprefix;
-  self._cprefix = cprefix;
-  self._protocol = secure ? Https : Http;
-  return self;
+  return emitter;
 };

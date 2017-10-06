@@ -1,7 +1,7 @@
 
 var Events = require("events");
 var ParseHeaders = require("../util/parse-headers.js");
-var Prototype = require("./prototype");
+var Factory = require("./factory.js");
 
 function request (method, path, headers, body, callback) {
   method = method || "GET";
@@ -53,11 +53,8 @@ function connect (path) {
 module.exports = function (host, secure) {
   host = host || location.host;
   secure = (location.origin.indexOf("https://") === 0 || secure) ? "s" : "";
-  var self = Object.create(Prototype);
-  self.connect = connect;
-  self.request = request;
-  self._prefix = "";
-  self._cprefix = "ws"+secure+"://"+host;
-  self._rprefix = "http"+secure+"://"+host;
-  return self;
+  var emitter = Factory(request, connect);
+  emitter._cprefix = "ws"+secure+"://"+host;
+  emitter._rprefix = "http"+secure+"://"+host;
+  return emitter;
 };

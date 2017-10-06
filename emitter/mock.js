@@ -1,8 +1,8 @@
 
 var Events = require("events");
-var Prototype = require("./prototype");
-var Onrequest = require("../receptor/dispatch/onrequest.js");
-var Onconnect = require("../receptor/dispatch/onconnect.js");
+var Factory = require("./factory.js");
+var DispatchRequest = require("../receptor/method/util/dispatch-request.js");
+var DispatchConnect = require("../receptor/method/util/dispatch-connect.js");
 
 function request (method, path, headers, body, callback) {
   method = method || "GET";
@@ -20,7 +20,7 @@ function request (method, path, headers, body, callback) {
       "(cf: https://github.com/abbr/deasync/issues/83)."
     ].join(""));
   }
-  setTimeout(Onrequest, 0, this._receptor, method, this._prefix+path, headers, body, function (status, reason, headers, body) {
+  setTimeout(DispatchRequest, 0, this._receptor, method, this._prefix+path, headers, body, function (status, reason, headers, body) {
     setTimeout(callback, 0, null, status, reason, headers, body);
   });
 };
@@ -36,7 +36,7 @@ function connect (path) {
   con1.send = send;
   con2.send = send;
   con2._pair = con1;
-  setTimeout(Onconnect, 0, this._receptor, this._prefix+path, con2);
+  setTimeout(DispatchConnect, 0, this._receptor, this._prefix+path, con2);
   setTimeout(function () {
     con1.readyState = 1;
     con1._pair = con2;
@@ -66,10 +66,7 @@ function send (message) {
 }
 
 module.exports = function (receptor) {
-  var self = Object.create(Prototype);
-  self.request = request;
-  self.connect = connect;
-  self._prefix = "";
-  self._receptor = receptor;
-  return self;
+  var emitter = Factory(request, connect);
+  emitter._receptor = receptor;
+  return emitter;
 };

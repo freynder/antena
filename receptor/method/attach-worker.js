@@ -1,9 +1,10 @@
 
-var WebworkerSocketPool = require("../util/worker-socket-pool.js");
-var Onrequest = require("./dispatch/onrequest.js");
-var Onconnect = require("./dispatch/onconnect.js");
+var WebworkerSocketPool = require("../../util/worker-socket-pool.js");
+var DispatchRequest = require("./util/dispatch-request.js");
+var DispatchConnect = require("./util/dispatch-connect.js");
 
-module.exports = function (receptor, worker) {
+module.exports = function (worker) {
+  var self = this;
   var pool = WebworkerSocketPool(worker);
   var views = null;
   var handlers = {
@@ -18,10 +19,10 @@ module.exports = function (receptor, worker) {
         index: data.pair,
         pair: index
       });
-      Onconnect(receptor, data.path, pool.get(index));
+      DispatchConnect(self, data.path, pool.get(index));
     },
     sync: function (data) {
-      Onrequest(receptor, data.method, data.path, data.headers, data.body, function (status, reason, headers, body) {
+      DispatchRequest(self, data.method, data.path, data.headers, data.body, function (status, reason, headers, body) {
         var copy = {};
         for (var key in copy)
           copy[key] = ""+headers[key];
@@ -38,7 +39,7 @@ module.exports = function (receptor, worker) {
       });
     },
     async: function (data) {
-      Onrequest(receptor, data.method, data.path, data.headers, data.body, function (status, reason, headers, body) {
+      DispatchRequest(self, data.method, data.path, data.headers, data.body, function (status, reason, headers, body) {
         var copy = {};
         for (var key in copy)
           copy[key] = ""+headers[key];

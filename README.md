@@ -3,16 +3,15 @@
 Antena is an API to uniformely perform (a)synchronous http requests and websocket connections.
 The end points of an Antena communication channel are different: one is called *receptor* while the other is called *emitter*.
 To be operational, receptors must be attached to a node http server or a web worker.
-Emitters must receive information to connect to a receptor during their creation.
-A [demo page](https://rawgit.com/lachrist/antena-demo/master/index.html) is available for toying around.
+While emitters should receive information to connect to a receptor at their creation.
+A [demo page](https://rawgit.com/lachrist/antena-demo/master/index.html) is available for experimenting Antena's API.
 
 ```js
-var Receptor = require("antena/receptor");
-var AttachServer = require("antena/receptor/attach-server");
+var Receptor = require("antena/receptor/node");
 var Http = require("http");
 
 var server = Http.createServer();
-var receptor = Receptor({}).merge({
+Receptor({}).merge({
   "echo": Receptor({
     onconnect: function (path, con) {
       con.on("message", function (message) {
@@ -25,15 +24,14 @@ var receptor = Receptor({}).merge({
       callback(200, "ok", {}, "pong");
     }
   })
-});
-AttachServer(receptor, server);
+}).attach(server);
 server.listen(8080);
 ```
 
 ```js
 var Emitter = require("antena/emitter/node");
 
-var emitters = Emitter(8080).split(["ping", "echo"]);
+var emitters = Emitter(8080, false).split(["ping", "echo"]);
 var con = emitters.echo.connect("/");
 con.on("message", function (message) { console.log(message) });
 con.on("open", function () { con.send("hello!") });
@@ -49,36 +47,40 @@ pong
 HELLO!
 ```
 
+## `Handlers`
+
+### `handlers.onrequest(method, path, headers, body, callback)`
+
+* `handlers :: antena.Handlers`
+* `method :: string`
+* `path :: string`
+* `headers :: {string}`
+* `body :: string`
+* `callback(status, reason, headers, body)`
+  * `status :: number`
+  * `reason :: string`
+  * `headers :: {string}`
+  * `body :: string`
+
+### `handlers.onconnect(path, websocket)`
+
+* `handlers :: antena.Handlers`
+* `path :: string`
+* `websocket :: antena.Websocket`
+
 ## `Receptor`
+
+`antena.Receptor := antena.ReceptorServer | antena.ReceptorWorker`
 
 ### `receptor = require("antena/receptor")(handlers)`
 
-* `handlers`
-  * `onrequest(method, path, headers, body, callback)`
-    * `method :: string`
-    * `path :: string`
-    * `headers :: {string}`
-    * `body :: string`
-    * `callback(status, reason, headers, body)`
-      * `status :: number`
-      * `reason :: string`
-      * `headers :: {string}`
-      * `body :: string`
-  * `onconnect(path, websocket)`
-    * `path :: string`
-    * `websocket :: antena.Websocket`
-* `receptor :: antena.Receptor`
+* `handlers :: antena.Handlers`
+* `receptor :: antena.ReceptorServer`
 
-### `require("antena/receptor/attach-server")(receptor, server)`
+### `receptor = require("antena/receptor/worker")(handlers)`
 
-* `receptor :: antena.Receptor`
-* `server :: http.Server`
-
-### `close = require("antena/receptor/attach-worker")(receptor, worker)`
-
-* `receptor :: antena.Receptor`
-* `worker :: Worker`
-* `close()`
+* `handlers :: antena.Handlers`
+* `receptor :: antena.ReceptorWorker`
 
 ### `receptor2 = receptor1.merge(receptors)`
 
@@ -92,16 +94,44 @@ HELLO!
 * `name :: string`
 * `receptor2 :: antena.Receptor`
 
+### `receptor.attach(server)`
+
+`receptor :: antena.ReceptorServer`
+`server :: http.Server`
+
+### `terminate = receptor.attach(worker)`
+
+* `receptor :: antena.ReceptorWorker`
+* `worker :: Worker`
+* `terminate()`
+
+### `onrequest = receptor.handler("request")`
+
+* `receptor :: antena.ReceptorServer`
+* `onrequest(request, response)`
+  * `request :: http.IncomingMessage`
+  * `response :: http.ServerResponse`
+
+### `onupgrade = receptor.handler("upgrade")`
+
+* `receptor :: antena.ReceptorNode`
+* `onupgrade(request, socket, head)`
+  * `request :: http.IncomingMessage`
+  * `socket :: net.Socket`
+  * `head :: Buffer`
+
 ## `Emitter`
 
-### `emitter = require("antena/emitter/node")(host)`
+### `emitter = require("antena/emitter/node")(host, secure)`
 
 * `host :: string`
+* `secure :: boolean`
 * `emitter :: antena.Emitter`
 
-### `emitter = require("antena/emitter/browser")(host)`
+### `emitter = require("antena/emitter/browser")(host, secure)`
 
 * `host :: string`
+* `secure :: boolean`
 * `emitter :: antena.Emitter`
 
 ### `emitter = require("antena/emitter/worker")(size)`
@@ -111,7 +141,7 @@ HELLO!
 
 ### `emitter = require("antena/emitter/mock")(receptor)`
 
-* `receptor :: antena.Receptor`
+* `receptor :: antena.ReceptorNode | antena.ReceptorBrowser`
 * `emitter :: antena.Emitter`
 
 ### `emitter.request(method, path, headers, body, callback)`

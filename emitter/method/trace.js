@@ -26,14 +26,12 @@ function connect (path) {
   return SocketLog(this._emitter.connect(this._prefix+path), this._name+"con#"+id);
 }
 
-module.exports = function (prototype) {
-  return function (name) {
-    var self = Object.create(prototype);
-    self.request = request;
-    self.connect = connect;
-    self._prefix = "";
-    self._emitter = this;
-    self._name = name || "";
-    return self;
-  };
+module.exports = function (name) {
+  var self = Object.create(Object.getPrototypeOf(this));
+  self.request = request;
+  self.connect = connect;
+  self._prefix = "";
+  self._emitter = this;
+  self._name = name || "";
+  return self;
 };

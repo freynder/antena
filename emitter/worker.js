@@ -1,6 +1,6 @@
 
 var WorkerSocketPool = require("../util/worker-socket-pool.js");
-var Prototype = require("./prototype");
+var Factory = require("./factory.js");
 
 function request (method, path, headers, body, callback) {
   method = method || "GET";
@@ -78,13 +78,10 @@ module.exports = function (size) {
   views.lock = new Uint8Array(shared, 0, 1);
   views.length = new Uint32Array(shared, 4, 1);
   views.data = new Uint16Array(shared, 8);
-  var self = Object.create(Prototype);
-  self.request = request;
-  self.connect = connect;
-  self._prefix = "";
-  self._callbacks = callbacks;
-  self._views = views;
-  self._poolcreate = pool.create;
-  self._poolget = pool.get;
-  return self;
+  var emitter = Factory(request, connect);
+  emitter._callbacks = callbacks;
+  emitter._views = views;
+  emitter._poolcreate = pool.create;
+  emitter._poolget = pool.get;
+  return emitter;
 };
