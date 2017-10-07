@@ -9,7 +9,7 @@
   "repository": "lachrist/antena",
   "license": "MIT",
   "dependencies": {
-    "ws": "^3.2.0"
+    "ws": "3.2.0"
   },
   "keywords": [
     "Request",

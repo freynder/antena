@@ -4,6 +4,7 @@ Antena is an API to uniformely perform (a)synchronous http requests and websocke
 The end points of an Antena communication channel are different: one is called *receptor* while the other is called *emitter*.
 To be operational, receptors must be attached to a node http server or a web worker.
 While emitters should receive information to connect to a receptor at their creation.
+Usage [here](/demo), live demo [here]
 A [demo page](https://rawgit.com/lachrist/antena-demo/master/index.html) is available for experimenting Antena's API.
 
 ```js

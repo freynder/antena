@@ -1,208 +1,198 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+var Emitter = require("../emitter/worker.js");
+var emitters = Emitter().split(["random", "unhandled", "ping"]);
+// Websocket connection //
+var con = emitters.random.connect("/");
+con.on("open", function () { console.log("connection establised") });
+con.on("message", function (message) { console.log(message) });
+// Synchronous XMLHttpRequest //
+var [error, status, reason, headers, body] = emitters.unhandled.request("GET", "/", {}, "");
+if (error)
+  throw error;
+console.log(status+" "+reason);
+// Asynchronous XMLHttpRequest //
+var counter = 0;
+setInterval(function () {
+  var id = ++counter;
+  console.log("ping"+id);
+  emitters.ping.request("GET", "/", {}, "", function (error, status, reason, headers, body) {
+    if (error || status !== 200)
+      throw error || new Error(status+" "+reason);
+    console.log(body+id);
+  });
+}, 1000);
+},{"../emitter/worker.js":6}],2:[function(require,module,exports){
 
-function onrequest (method, path, headers, body, callback) {
-  callback(400, "no-handler", {}, this._stack);
-}
+var Split = require("./method/split.js");
+var Trace = require("./method/trace.js");
+var Fork = require("./method/fork.js");
 
-function onconnect (path, con) {
-  con.send(this._stack);
-  con.close(4000, "no-handler");
-}
-
-module.exports = function (prototype) {
-  return function (handlers) {
-    var receptor = Object.create(prototype);
-    if (typeof handlers.onrequest !== "function" && typeof handlers.onconnect !== "function")
-      receptor._stack = (new Error("No handler")).stack;
-    receptor._onrequest = typeof handlers.onrequest === "function" ? handlers.onrequest : onrequest;
-    receptor._onconnect = typeof handlers.onconnect === "function" ? handlers.onconnect : onconnect;
-    return receptor;
-  }
+var prototype = {
+  split: Split,
+  fork: Fork,
+  trace: Trace
 };
 
-},{}],2:[function(require,module,exports){
-
-var WebworkerSocketPool = require("../../util/worker-socket-pool.js");
-var DispatchRequest = require("./util/dispatch-request.js");
-var DispatchConnect = require("./util/dispatch-connect.js");
-
-module.exports = function (worker) {
-  var self = this;
-  var pool = WebworkerSocketPool(worker);
-  var views = null;
-  var handlers = {
-    message: pool.onmessage,
-    close1: pool.onclose1,
-    close2: pool.onclose2,
-    open1: function (data) {
-      var index = pool.create();
-      pool.open(index, data.pair);
-      worker.postMessage({
-        name: "open2",
-        index: data.pair,
-        pair: index
-      });
-      DispatchConnect(self, data.path, pool.get(index));
-    },
-    sync: function (data) {
-      DispatchRequest(self, data.method, data.path, data.headers, data.body, function (status, reason, headers, body) {
-        var copy = {};
-        for (var key in copy)
-          copy[key] = ""+headers[key];
-        var response = JSON.stringify({
-          status: parseInt(status),
-          reason: ""+reason,
-          headers: copy,
-          body: ""+body
-        });
-        views.length[0] = response.length;
-        for (var i=0, l=Math.min(response.length, views.data.length); i<l; i++)
-          views.data[i] = response.charCodeAt(i);
-        views.lock[0] = 0;
-      });
-    },
-    async: function (data) {
-      DispatchRequest(self, data.method, data.path, data.headers, data.body, function (status, reason, headers, body) {
-        var copy = {};
-        for (var key in copy)
-          copy[key] = ""+headers[key];
-        worker.postMessage({
-          name: "async",
-          index: data.index,
-          status: parseInt(status),
-          reason: ""+reason,
-          headers: copy,
-          body: ""+body
-        });
-      });
-    }
-  };
-  worker.onmessage = function (message) {
-    if (views)
-      return handlers[message.data.name](message.data);
-    views = {};
-    views.lock = new Uint8Array(message.data, 0, 1);
-    views.length = new Uint32Array(message.data, 4, 1);
-    views.data = new Uint16Array(message.data, 8);
-  };
-  return function () {
-    worker.terminate();
-    worker.onmessage = null;
-    for (var i=0; pool.get[i] !== void 0; i++) {
-      if (pool.get[i] !== null) {
-        pool.get[i].readyState = 3;
-        pool.get[i].emit("close", 1001, "CLOSE_GOING_AWAY")
-      }
-    };
-    pool = null;
-    views = null;
-    handlers = null;
-  };
+module.exports = function (request, connect) {
+  var emitter = Object.create(prototype);
+  emitter.request = request;
+  emitter.connect = connect;
+  emitter._prefix = "";
+  return emitter;
 };
 
-},{"../../util/worker-socket-pool.js":10,"./util/dispatch-connect.js":5,"./util/dispatch-request.js":6}],3:[function(require,module,exports){
+},{"./method/fork.js":3,"./method/split.js":4,"./method/trace.js":5}],3:[function(require,module,exports){
 
-module.exports = function (receptors) {
-  var receptor = Object.create(Object.getPrototypeOf(this));
-  receptor._childs = receptors;
-  receptor._default = this;
-  return receptor;
+module.exports = function (splitter) {
+  var emitter = Object.create(Object.getPrototypeOf(this));
+  Object.assign(emitter, this);
+  emitter._prefix += "/"+splitter;
+  return emitter;
 };
 
 },{}],4:[function(require,module,exports){
 
+module.exports = function (splitters) {
+  var emitters = {};
+  for (var i=0; i<splitters.length; i++) {
+    emitters[splitters[i]] = Object.create(Object.getPrototypeOf(this));
+    Object.assign(emitters[splitters[i]], this);
+    emitters[splitters[i]]._prefix += "/"+splitters[i];
+  }
+  return emitters;
+};
+
+},{}],5:[function(require,module,exports){
+
 var SocketLog = require("../../util/socket-log.js");
-var DispatchRequest = require("./util/dispatch-request.js");
-var DispatchConnect = require("./util/dispatch-connect.js");
 
 var rcounter = 0;
 var ccounter = 0;
 
-function onrequest (method, path, headers, body, callback) {
-  var id = rcounter++;
+function request (method, path, headers, body, callback) {
   var name = this._name;
-  var receptor = this._receptor;
+  var path = this._prefix+path;
+  var id = rcounter++;
   console.log(name+"req#"+id+" "+method+" "+path+" "+JSON.stringify(headers)+" "+body);
-  DispatchRequest(receptor, method, path, headers, body, function (status, reason, headers, body) {
+  if (!callback) {
+    var res = this._emitter.request(method, path, headers, body);
+    console.log(name+"res#"+id+" "+res[0]+" "+res[1]+" "+JSON.stringify(res[2])+" "+res[3]);
+    return res;
+  }
+  this._emitter.request(method, path, headers, body, function (error, status, reason, headers, body) {
     console.log(name+"res#"+id+" "+status+" "+reason+" "+JSON.stringify(headers)+" "+body);
-    callback(status, reason, headers, body);
+    callback(error, status, reason, headers, body);
   });
 }
 
-function onconnect (path, con) {
+function connect (path) {
   var id = ccounter++;
-  console.log(this._name+"con#"+id+" "+path);
-  DispatchConnect(this._receptor, path, SocketLog(con, this._name+"con#"+id));
+  console.log(this._name+"con#"+id+" "+this._prefix+path);
+  return SocketLog(this._emitter.connect(this._prefix+path), this._name+"con#"+id);
 }
 
 module.exports = function (name) {
-  var receptor = Object.create(Object.getPrototypeOf(this));
-  receptor._onrequest = onrequest;
-  receptor._onconnect = onconnect;
-  receptor._receptor = this;
-  receptor._name = name || "";
-  return receptor;
+  var self = Object.create(Object.getPrototypeOf(this));
+  self.request = request;
+  self.connect = connect;
+  self._prefix = "";
+  self._emitter = this;
+  self._name = name || "";
+  return self;
 };
 
-},{"../../util/socket-log.js":9,"./util/dispatch-connect.js":5,"./util/dispatch-request.js":6}],5:[function(require,module,exports){
+},{"../../util/socket-log.js":7}],6:[function(require,module,exports){
+(function (global){
 
-module.exports = function (receptor, path, con) {
-  var segments = path.split("/");
-  segments.shift();
-  while (true) {
-    if (receptor._onconnect)
-      return receptor._onconnect("/"+segments.join("/"), con);
-    receptor = (segments[0] in receptor._childs) ? receptor._childs[segments.shift()] : receptor._default;
-  }
-};
-
-},{}],6:[function(require,module,exports){
-
-module.exports = function onrequest (receptor, method, path, headers, body, callback) {
-  var segments = path.split("/");
-  segments.shift();
-  while (true) {
-    if (receptor._onrequest)
-      return receptor._onrequest(method, "/"+segments.join("/"), headers, body, callback);
-    receptor = (segments[0] in receptor._childs) ? receptor._childs[segments.shift()] : receptor._default;
-  }
-};
-
-},{}],7:[function(require,module,exports){
-
-var AttachWorker = require("./method/attach-worker.js");
-var Merge = require("./method/merge.js");
-var Trace = require("./method/trace.js");
+var WorkerSocketPool = require("../util/worker-socket-pool.js");
 var Factory = require("./factory.js");
 
-module.exports = Factory({
-  attach: AttachWorker,
-  merge: Merge,
-  trace: Trace
-});
+function request (method, path, headers, body, callback) {
+  method = method || "GET";
+  path = path || "";
+  headers = headers || {};
+  body = body || "";
+  var copy = {};
+  for (var key in headers)
+    copy[key] = ""+headers[key];
+  if (!callback) {
+    this._views.lock[0] = 1;
+    global.postMessage({
+      name: "sync",
+      method: method,
+      path: this._prefix+path,
+      headers: copy,
+      body: body
+    });
+    while (this._views.lock[0]);
+    if (this._views.length[0] > this._views.data.length)
+      return [new Error("Response too long for "+method+" "+path)];
+    var data = JSON.parse(String.fromCharCode.apply(null, this._views.data.slice(0, this._views.length[0])));;
+    return [null, data.status, data.reason, data.headers, data.body];
+  }
+  for (var i=0; i<=this._callbacks.length; i++) {
+    if (!this._callbacks[i]) {
+      this._callbacks[i] = callback;
+      return global.postMessage({
+        name: "async",
+        index: i,
+        method: ""+method,
+        path: this._prefix+path,
+        headers: copy,
+        body: body
+      });
+    }
+  }
+}
 
-},{"./factory.js":1,"./method/attach-worker.js":2,"./method/merge.js":3,"./method/trace.js":4}],8:[function(require,module,exports){
-var Receptor = require("../receptor/worker.js");
-Receptor({}).merge({
-  "random": Receptor({
-    onconnect: function (path, con) {
-      function loop () {
-        if (con.readyState === 1) {
-          var random = Math.round(2 * 1000 * Math.random());
-          con.send(random);
-          setTimeout(loop, random);
-        }
-      }
-      loop();
+function connect (path) {
+  path = path || "";
+  var index = this._poolcreate();
+  global.postMessage({
+    name: "open1",
+    path: this._prefix+path,
+    pair: index
+  });
+  return this._poolget(index);
+}
+
+var singleton = false;
+
+module.exports = function (size) {
+  if (singleton)
+    throw new Error("Only one worker emitter can be created...");
+  singleton = true;
+  var callbacks = [];
+  var pool = WorkerSocketPool(global);
+  var handlers = {
+    close1: pool.onclose1,
+    close2: pool.onclose2,
+    message: pool.onmessage,
+    open2: function (data) { pool.open(data.index, data.pair) },
+    async: function (data) {
+      callbacks[data.index](null, data.status, data.reason, data.headers, data.body);
+      delete callbacks[data.index];
     }
-  }),
-  "ping": Receptor({
-    onrequest: function (method, path, headers, body, callback) {
-      callback(200, "ok", {}, "pong");
-    }
-  })
-}).attach(new Worker("worker-bundle.js"));
-},{"../receptor/worker.js":7}],9:[function(require,module,exports){
+  };
+  onmessage = function (message) {
+    handlers[message.data.name](message.data)
+  };
+  var shared = new SharedArrayBuffer(2*(size||1024)+8);
+  global.postMessage(shared);
+  var views = {};
+  views.lock = new Uint8Array(shared, 0, 1);
+  views.length = new Uint32Array(shared, 4, 1);
+  views.data = new Uint16Array(shared, 8);
+  var emitter = Factory(request, connect);
+  emitter._callbacks = callbacks;
+  emitter._views = views;
+  emitter._poolcreate = pool.create;
+  emitter._poolget = pool.get;
+  return emitter;
+};
+
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"../util/worker-socket-pool.js":8,"./factory.js":2}],7:[function(require,module,exports){
 
 var Events = require("events");
 
@@ -235,7 +225,7 @@ module.exports = function (con, name) {
   return wrapper;
 };
 
-},{"events":11}],10:[function(require,module,exports){
+},{"events":9}],8:[function(require,module,exports){
 
 var Events = require("events");
 
@@ -314,7 +304,7 @@ module.exports = function (poster) {
   };
 };
 
-},{"events":11}],11:[function(require,module,exports){
+},{"events":9}],9:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -618,4 +608,4 @@ function isUndefined(arg) {
   return arg === void 0;
 }
 
-},{}]},{},[8]);
+},{}]},{},[1]);
