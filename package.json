@@ -1,7 +1,7 @@
 {
   "name": "antena",
   "description": "API to uniformely perform (a)synchronous http requests and websocket connections",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "author": {
     "name": "Laurent Christophe",
     "email": "lachrist@vub.ac.be"
