@@ -58,11 +58,17 @@ Usage [here](/demo), live demo [here](https://cdn.rawgit.com/lachrist/antena/8e7
 `receptor :: antena.ReceptorServer`
 `server :: http.Server`
 
-### `terminate = receptor.spawn(url)`
+### `worker = receptor.spawn(url)`
 
 * `receptor :: antena.ReceptorWorker`
 * `url :: string | object-url`
-* `terminate()`
+* `worker :: EventTarget`
+  * `terminate()`
+  * BrowserEvent `error :: ErrorEvent`
+    * `message :: string`
+    * `filename :: string`
+    * `lineno :: number`
+    * `colno :: number`
 
 ### `onrequest = receptor.handler("request")`
 

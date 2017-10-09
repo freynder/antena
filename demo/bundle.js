@@ -56,9 +56,19 @@ var WebworkerSocketPool = require("../../util/worker-socket-pool.js");
 var DispatchRequest = require("./util/dispatch-request.js");
 var DispatchConnect = require("./util/dispatch-connect.js");
 
-module.exports = function (url) {
+function termiante () {
+  this._worker.terminate();
+  for (var i=0; this._pool.get[i] !== void 0; i++) {
+    if (pool.get[i] !== null) {
+      this._pool.get[i].readyState = 3;
+      this._pool.get[i].emit("close", 1001, "CLOSE_GOING_AWAY")
+    }
+  };
+}
+
+module.exports = function (url, options) {
   var self = this;
-  var worker = new Worker(url);
+  var worker = new Worker(url, options);
   var pool = WebworkerSocketPool(worker);
   var views = null;
   var handlers = {
@@ -108,27 +118,22 @@ module.exports = function (url) {
       });
     }
   };
-  worker.onmessage = function (message) {
+  worker.addEventListener("message", function (event) {
     if (views)
-      return handlers[message.data.name](message.data);
+      return handlers[event.data.name](event.data);
     views = {};
-    views.lock = new Uint8Array(message.data, 0, 1);
-    views.length = new Uint32Array(message.data, 4, 1);
-    views.data = new Uint16Array(message.data, 8);
-  };
-  return function () {
-    worker.terminate();
-    worker.onmessage = null;
-    for (var i=0; pool.get[i] !== void 0; i++) {
-      if (pool.get[i] !== null) {
-        pool.get[i].readyState = 3;
-        pool.get[i].emit("close", 1001, "CLOSE_GOING_AWAY")
-      }
-    };
-    pool = null;
-    views = null;
-    handlers = null;
-  };
+    views.lock = new Uint8Array(event.data, 0, 1);
+    views.length = new Uint32Array(event.data, 4, 1);
+    views.data = new Uint16Array(event.data, 8);
+  });
+  worker.addEventListener("error", function (event) {
+    target.dispatchEvent(event);
+  });
+  var target = new EventTarget();
+  target._worker = worker;
+  target._pool = pool;
+  target.terminate = terminate;
+  return target;
 };
 
 },{"../../util/worker-socket-pool.js":10,"./util/dispatch-connect.js":6,"./util/dispatch-request.js":7}],5:[function(require,module,exports){
