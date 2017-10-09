@@ -56,7 +56,7 @@ var WebworkerSocketPool = require("../../util/worker-socket-pool.js");
 var DispatchRequest = require("./util/dispatch-request.js");
 var DispatchConnect = require("./util/dispatch-connect.js");
 
-function termiante () {
+function terminate () {
   this.terminate();
   for (var i=0; this._pool.get[i] !== void 0; i++) {
     if (pool.get[i] !== null) {
