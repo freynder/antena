@@ -4,13 +4,13 @@ var DispatchRequest = require("./util/dispatch-request.js");
 var DispatchConnect = require("./util/dispatch-connect.js");
 
 function terminate () {
-  this.terminate();
+  Worker.prototype.terminate.call(this);
   for (var i=0; this._pool.get[i] !== void 0; i++) {
     if (pool.get[i] !== null) {
       this._pool.get[i].readyState = 3;
-      this._pool.get[i].emit("close", 1001, "CLOSE_GOING_AWAY")
+      this._pool.get[i].emit("close", 1001, "CLOSE_GOING_AWAY");
     }
-  };
+  }
 }
 
 module.exports = function (url, options) {
