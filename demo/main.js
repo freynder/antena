@@ -17,4 +17,4 @@ Receptor({}).merge({
       callback(200, "ok", {}, "pong");
     }
   })
-}).attach(new Worker("worker-bundle.js"));
+}).spawn("worker-bundle.js");

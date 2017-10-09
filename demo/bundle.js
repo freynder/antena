@@ -18,7 +18,7 @@ Receptor({}).merge({
       callback(200, "ok", {}, "pong");
     }
   })
-}).attach(new Worker("worker-bundle.js"));
+}).spawn("worker-bundle.js");
 },{"../receptor/worker.js":8}],2:[function(require,module,exports){
 
 function onrequest (method, path, headers, body, callback) {
@@ -43,12 +43,22 @@ module.exports = function (prototype) {
 
 },{}],3:[function(require,module,exports){
 
+module.exports = function (receptors) {
+  var receptor = Object.create(Object.getPrototypeOf(this));
+  receptor._childs = receptors;
+  receptor._default = this;
+  return receptor;
+};
+
+},{}],4:[function(require,module,exports){
+
 var WebworkerSocketPool = require("../../util/worker-socket-pool.js");
 var DispatchRequest = require("./util/dispatch-request.js");
 var DispatchConnect = require("./util/dispatch-connect.js");
 
-module.exports = function (worker) {
+module.exports = function (url) {
   var self = this;
+  var worker = new Worker(url);
   var pool = WebworkerSocketPool(worker);
   var views = null;
   var handlers = {
@@ -121,16 +131,7 @@ module.exports = function (worker) {
   };
 };
 
-},{"../../util/worker-socket-pool.js":10,"./util/dispatch-connect.js":6,"./util/dispatch-request.js":7}],4:[function(require,module,exports){
-
-module.exports = function (receptors) {
-  var receptor = Object.create(Object.getPrototypeOf(this));
-  receptor._childs = receptors;
-  receptor._default = this;
-  return receptor;
-};
-
-},{}],5:[function(require,module,exports){
+},{"../../util/worker-socket-pool.js":10,"./util/dispatch-connect.js":6,"./util/dispatch-request.js":7}],5:[function(require,module,exports){
 
 var SocketLog = require("../../util/socket-log.js");
 var DispatchRequest = require("./util/dispatch-request.js");
@@ -191,18 +192,18 @@ module.exports = function onrequest (receptor, method, path, headers, body, call
 
 },{}],8:[function(require,module,exports){
 
-var AttachWorker = require("./method/attach-worker.js");
+var Spawn = require("./method/spawn.js");
 var Merge = require("./method/merge.js");
 var Trace = require("./method/trace.js");
 var Factory = require("./factory.js");
 
 module.exports = Factory({
-  attach: AttachWorker,
+  spawn: Spawn,
   merge: Merge,
   trace: Trace
 });
 
-},{"./factory.js":2,"./method/attach-worker.js":3,"./method/merge.js":4,"./method/trace.js":5}],9:[function(require,module,exports){
+},{"./factory.js":2,"./method/merge.js":3,"./method/spawn.js":4,"./method/trace.js":5}],9:[function(require,module,exports){
 
 var Events = require("events");
 

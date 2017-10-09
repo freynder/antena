@@ -58,10 +58,10 @@ Usage [here](/demo), live demo [here](https://cdn.rawgit.com/lachrist/antena/428
 `receptor :: antena.ReceptorServer`
 `server :: http.Server`
 
-### `terminate = receptor.attach(worker)`
+### `terminate = receptor.spawn(url)`
 
 * `receptor :: antena.ReceptorWorker`
-* `worker :: Worker`
+* `url :: string | object-url`
 * `terminate()`
 
 ### `onrequest = receptor.handler("request")`

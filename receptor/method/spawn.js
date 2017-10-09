@@ -3,8 +3,9 @@ var WebworkerSocketPool = require("../../util/worker-socket-pool.js");
 var DispatchRequest = require("./util/dispatch-request.js");
 var DispatchConnect = require("./util/dispatch-connect.js");
 
-module.exports = function (worker) {
+module.exports = function (url) {
   var self = this;
+  var worker = new Worker(url);
   var pool = WebworkerSocketPool(worker);
   var views = null;
   var handlers = {
