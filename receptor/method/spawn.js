@@ -4,7 +4,7 @@ var DispatchRequest = require("./util/dispatch-request.js");
 var DispatchConnect = require("./util/dispatch-connect.js");
 
 function termiante () {
-  this._worker.terminate();
+  this.terminate();
   for (var i=0; this._pool.get[i] !== void 0; i++) {
     if (pool.get[i] !== null) {
       this._pool.get[i].readyState = 3;
@@ -73,12 +73,7 @@ module.exports = function (url, options) {
     views.length = new Uint32Array(event.data, 4, 1);
     views.data = new Uint16Array(event.data, 8);
   });
-  worker.addEventListener("error", function (event) {
-    target.dispatchEvent(event);
-  });
-  var target = new EventTarget();
-  target._worker = worker;
-  target._pool = pool;
-  target.terminate = terminate;
-  return target;
+  worker._pool = pool;
+  worker.terminate = terminate;
+  return worker;
 };
