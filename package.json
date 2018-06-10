@@ -1,15 +1,16 @@
 {
   "name": "antena",
-  "description": "API to uniformely perform (a)synchronous http requests and websocket connections",
-  "version": "0.1.5",
+  "description": "Uniformely perform (a)synchronous http requests and websocket connections",
+  "version": "1.0.0",
   "author": {
     "name": "Laurent Christophe",
     "email": "lachrist@vub.ac.be"
   },
   "repository": "lachrist/antena",
   "license": "MIT",
+  "main": "/node.js",
   "dependencies": {
-    "ws": "3.2.0"
+    "ws": "^5.2.0"
   },
   "keywords": [
     "Request",

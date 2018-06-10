@@ -1,194 +1,63 @@
 # antena
 
 Antena is an API to uniformely perform (a)synchronous http requests and websocket connections.
-The end points of an Antena communication channel are different: one is called *receptor* while the other is called *emitter*.
-To be operational, receptors must be attached to a node http server or a web worker.
-While emitters should receive information to connect to a receptor at their creation.
-Usage [here](/demo), live demo [here](https://cdn.rawgit.com/lachrist/antena/13c33841/demo/index.html).
 
-## `Handlers`
+## `antena = require("antena/node")(host, secure)`
 
-### `handlers.onrequest(method, path, headers, body, callback)`
+* `host :: string | number`
+  Example of valid host:
+  * `"localhost:8080"`
+  * `"localhost"`
+    Use default http ports (443 if secure is truthy else 80).
+  * `"8080`
+    Same as `"localhost:8080"`
+  * `8080`
+    Same as `"localhost:8080"`
+  * `/tmp/unix-domain-socket.sock`
+    Unix domain socket can only be used if secure is falsy.
+* `secure :: boolean` 
 
-* `handlers :: antena.Handlers`
+## `antena = require("antena/browser")(host, secure)`
+
+* `host :: string | undefined`
+  * `"localhost:8080"`
+  * `"localhost"`
+    Use default http ports (443 if secure is truthy else 80).
+  * `undefined`
+    Same as providing the page's host (`window.location.host`)
+* `secure :: boolean`
+  Note that is the page is served accross `https`, this parameter will be overwritten to `true`;
+
+## `antena.request(method, path, headers, body, callback)`
+
 * `method :: string`
 * `path :: string`
-* `headers :: {string}`
+* `headers :: object`
 * `body :: string`
-* `callback(status, reason, headers, body)`
+* `callback(error, {status, message, headers, body})`
+  * `error :: Error`
   * `status :: number`
-  * `reason :: string`
-  * `headers :: {string}`
+  * `message :: string`
+  * `headers :: object`
   * `body :: string`
 
-### `handlers.onconnect(path, websocket)`
+## `[status, message, headers2, body2] = antena.request(method, path, headers1, body1)`
 
-* `handlers :: antena.Handlers`
-* `path :: string`
-* `websocket :: antena.Websocket`
-
-## `Receptor`
-
-`antena.Receptor := antena.ReceptorServer | antena.ReceptorWorker`
-
-### `receptor = require("antena/receptor")(handlers)`
-
-* `handlers :: antena.Handlers`
-* `receptor :: antena.ReceptorServer`
-
-### `receptor = require("antena/receptor/worker")(handlers)`
-
-* `handlers :: antena.Handlers`
-* `receptor :: antena.ReceptorWorker`
-
-### `receptor2 = receptor1.merge(receptors)`
-
-* `receptor1 :: antena.Receptor`
-* `receptors :: {antena.Receptor}`
-* `receptor2 :: antena.Receptor`
-
-### `receptor2 = receptor1.trace(name)`
-
-* `receptor1 :: antena.Receptor`
-* `name :: string`
-* `receptor2 :: antena.Receptor`
-
-### `receptor.attach(server)`
-
-`receptor :: antena.ReceptorServer`
-`server :: http.Server`
-
-### `worker = receptor.spawn(url)`
-
-* `receptor :: antena.ReceptorWorker`
-* `url :: string | object-url`
-* `worker :: EventTarget`
-  * `terminate()`
-  * BrowserEvent `error :: ErrorEvent`
-    * `message :: string`
-    * `filename :: string`
-    * `lineno :: number`
-    * `colno :: number`
-
-### `onrequest = receptor.handler("request")`
-
-* `receptor :: antena.ReceptorServer`
-* `onrequest(request, response)`
-  * `request :: http.IncomingMessage`
-  * `response :: http.ServerResponse`
-
-### `onupgrade = receptor.handler("upgrade")`
-
-* `receptor :: antena.ReceptorNode`
-* `onupgrade(request, socket, head)`
-  * `request :: http.IncomingMessage`
-  * `socket :: net.Socket`
-  * `head :: Buffer`
-
-## `Emitter`
-
-### `emitter = require("antena/emitter/node")(host, secure)`
-
-* `host :: string`
-* `secure :: boolean`
-* `emitter :: antena.Emitter`
-
-### `emitter = require("antena/emitter/browser")(host, secure)`
-
-* `host :: string`
-* `secure :: boolean`
-* `emitter :: antena.Emitter`
-
-### `emitter = require("antena/emitter/worker")(size)`
-
-* `size :: number`
-* `emitter :: antena.Emitter`
-
-### `emitter = require("antena/emitter/mock")(receptor)`
-
-* `receptor :: antena.ReceptorNode | antena.ReceptorBrowser`
-* `emitter :: antena.Emitter`
-
-### `emitter.request(method, path, headers, body, callback)`
-
-* `emitter :: antena.Emitter`
 * `method :: string`
 * `path :: string`
-* `headers :: {string}`
-* `body :: string`
-* `callback(error, status, reason, headers, body)`
-  * `error :: Error | null`
-  * `status :: number | undefined`
-  * `reason :: string | undefined`
-  * `headers :: {string} | undefined`
-  * `body :: string | undefined`
-
-### `[error2, status2, reason2, headers2, body2] = emitter.request(method1, path1, headers1, body1)`
-
-* `emitter :: antena.Emitter`
-* `method1 :: string`
-* `path1 :: string`
-* `headers1 :: {string}`
+* `hearders1 :: object`
 * `body1 :: string`
-* `error2 :: Error | null`
-* `status2 :: number | undefined`
-* `reason2 :: string | undefined`
-* `headers2 :: {string} | undefined`
-* `body2 :: string | undefined`
+* `status :: number`
+* `message :: string`
+* `headers2 :: object`
+* `body2 :: string`
 
-### `websocket = emitter.connect(path)`
+## `websocket = antena.connect(path)`
 
-* `emitter :: antena.Emitter`
 * `path :: string`
-* `websocket :: antena.Websocket`
+* `websocket :: browser.WebSocket || ws.WebSocket`
+  Browser style listeners: `onopen`, `onmessage`, `onerror` and `onclose` are isomorphic.
 
-### `emitter2 = emitter1.fork(splitter)`
+## `antena2 = antena1.fork(prefix)`
 
-* `emitter1 :: antena.Emitter`
-* `splitter :: string`
-* `emitter2 :: antena.Emitter`
-
-### `emitters = emitter.split(splitters)`
-
-* `emitter :: antena.Emitter`
-* `splitter :: [string]`
-* `emitters :: {antena.Emitter}`
-
-### `emitter2 = emitter1.trace(name)`
-
-* `emitter1 :: antena.Emitter`
-* `name :: string`
-* `emitter2 :: antena.Emitter`
-
-## `Websocket`
-
-### `state = websocket.readyState`
-
-* `websocket :: antena.Websocket`
-* `state : number`
-
-### Event: `"open"`
-
-### `websocket.send(message)`
-
-* `websocket :: antena.Websocket`
-* `message :: string | ArrayBuffer`
-
-### Event: `"message"`
-
-* `message :: string | ArrayBuffer`
-
-### `websocket.close(code, reason)`
-
-* `websocket :: antena.Websocket`
-* `code(number)`
-* `reason(string)`
-
-### Event: `"close"`
-
-* `code :: number`
-* `reason :: string`
-
-### Event: `"error"`
-
-* `error :: Error`
+* `prefix :: string` 
