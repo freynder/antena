@@ -1,6 +1,6 @@
-# antena
+# Antena
 
-Antena is an API to uniformely perform (a)synchronous http requests and websocket connections.
+Uniformly perform (a)synchronous http requests and websocket connections.
 
 ## `antena = require("antena/node")(host, secure)`
 

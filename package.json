@@ -1,6 +1,6 @@
 {
   "name": "antena",
-  "description": "Uniformely perform (a)synchronous http requests and websocket connections",
+  "description": "Uniformly perform (a)synchronous http requests and websocket connections",
   "version": "1.0.1",
   "author": {
     "name": "Laurent Christophe",
