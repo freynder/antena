@@ -76,7 +76,7 @@ module.exports.prototype.request = function request (method, path, headers, body
     const lines = result.stdout.substring(0, index).split("\r\n");
     if (lines.length === 0)
       throw Error("Cannot extract the status line from:\n"+result.stdout);
-    const [version, status, message] = /^HTTP\/([0-9]\.[0-9]|[0-9]) ([0-9][0-9][0-9]) (.*)$/.exec(lines.shift());
+    const [match, version, status, message] = /^HTTP\/([0-9]\.[0-9]|[0-9]) ([0-9][0-9][0-9]) (.*)$/.exec(lines.shift());
     return [
       Number(status),
       message,
