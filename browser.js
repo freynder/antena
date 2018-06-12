@@ -3,11 +3,14 @@ const Fork = require("./fork.js");
 const ParseHeaders = require("./parse-headers.js");
 
 module.exports = function (host, secure) {
+  if (!new.target)
+    this = Object.create(module.exports.prototype);
   host = host || location.host;
   secure = (location.origin.indexOf("https://") === 0 || secure) ? "s" : "";
   this._prefix = "";
   this._connect_url = "ws"+secure+"://"+host;
   this._request_url = "http"+secure+"://"+host;
+  return this;
 };
 
 module.exports.prototype.fork = Fork;

@@ -7,6 +7,8 @@ const ParseHeaders = require("./parse-headers.js");
 const Fork = require("./fork.js");
 
 module.exports = function (host, secure) {
+  if (!new.target)
+    this = Object.create(module.exports.prototype);
   this._prefix = "";
   if (typeof host === "string" && host.indexOf("/") !== -1) {
     if (secure)
@@ -33,6 +35,7 @@ module.exports = function (host, secure) {
     this._request_url = "http"+secure+"://"+this._options.hostname+":"+this._options.port;
     this._connect_url = "ws"+secure+"://"+this._options.hostname+":"+this._options.port;
   }
+  return this;
 };
 
 module.exports.prototype.fork = Fork;
