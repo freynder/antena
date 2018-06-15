@@ -15,11 +15,11 @@ module.exports = function (host, secure) {
 
 module.exports.prototype.fork = Fork;
 
-module.exports.prototype.WebSocket = function WebSocket (path) {
+module.exports.prototype.WebSocket = function (path) {
   return new WebSocket(this._websocket_url+this._prefix+(path||""));
 };
 
-module.exports.prototype.request = function request (method, path, headers, body, callback) {
+module.exports.prototype.request = function (method, path, headers, body, callback) {
   method = method || "GET";
   path = path || "";
   headers = headers || {};

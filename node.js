@@ -53,7 +53,7 @@ function onend () {
   ]);
 }
 
-module.exports.prototype.request = function request (method, path, headers, body, callback) {
+module.exports.prototype.request = function (method, path, headers, body, callback) {
   method = method || "GET";
   path = path || "";
   headers = headers || {};
@@ -100,6 +100,6 @@ module.exports.prototype.request = function request (method, path, headers, body
   }).on("error", callback).end(body);
 };
 
-module.exports.prototype.WebSocket = function WebSocket (path) {
+module.exports.prototype.WebSocket = function (path) {
   return new Ws(this._websocket_url+this._prefix+(path||""));
 };

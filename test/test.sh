@@ -14,7 +14,7 @@ kill $!
 # browser
 browserify client-browser.js > client-browser-bundle.js
 node server.js 8080 &
-sleep 1
-open "http://localhost:8080"
-sleep 4
+sleep 3
+/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --auto-open-devtools-for-tabs http://localhost:8080/index.html > /dev/null
+sleep 3
 kill $!
