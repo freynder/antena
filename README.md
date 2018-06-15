@@ -1,6 +1,6 @@
 # Antena
 
-Uniformly perform (a)synchronous http requests and websocket connections.
+Isomorph http client.
 
 ## `antena = require("antena/node")(host, secure)`
 
@@ -14,7 +14,9 @@ Uniformly perform (a)synchronous http requests and websocket connections.
   * `8080`
     Same as `"localhost:8080"`
   * `/tmp/unix-domain-socket.sock`
-    Unix domain socket can only be used if secure is falsy.
+    Unix domain sockets can only be used if secure is falsy.
+  * `\\\\?\\pipe\window-pipe`
+    Windows pipes can only be used if secure is falsy.
 * `secure :: boolean` 
 
 ## `antena = require("antena/browser")(host, secure)`
@@ -24,7 +26,7 @@ Uniformly perform (a)synchronous http requests and websocket connections.
   * `"localhost"`
     Use default http ports (443 if secure is truthy else 80).
   * `undefined`
-    Same as providing the page's host (`window.location.host`)
+    Same as providing the page's host (`window.location.host`).
 * `secure :: boolean`
   Note that is the page is served accross `https`, this parameter will be overwritten to `true`;
 
@@ -34,7 +36,7 @@ Uniformly perform (a)synchronous http requests and websocket connections.
 * `path :: string`
 * `headers :: object`
 * `body :: string`
-* `callback(error, {status, message, headers, body})`
+* `callback(error, [status, message, headers, body])`
   * `error :: Error`
   * `status :: number`
   * `message :: string`
@@ -52,12 +54,12 @@ Uniformly perform (a)synchronous http requests and websocket connections.
 * `headers2 :: object`
 * `body2 :: string`
 
-## `websocket = antena.connect(path)`
+## `websocket = antena.WebSocket(path)`
 
 * `path :: string`
 * `websocket :: browser.WebSocket || ws.WebSocket`
   Browser style listeners: `onopen`, `onmessage`, `onerror` and `onclose` are isomorphic.
 
-## `antena2 = antena1.fork(prefix)`
+## `antena2 = antena1.fork(splitter)`
 
-* `prefix :: string` 
+* `splitter :: string`

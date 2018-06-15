@@ -8,7 +8,7 @@ const Fork = require("./fork.js");
 
 module.exports = function (host, secure) {
   if (!new.target)
-    this = Object.create(module.exports.prototype);
+    throw new Error("Antena is a constructor");
   this._prefix = "";
   if (typeof host === "string" && host.indexOf("/") !== -1) {
     if (secure)
@@ -16,7 +16,7 @@ module.exports = function (host, secure) {
     this._protocol = Http;
     this._options = {socketPath:host};
     this._request_url = "http://localhost";
-    this._connect_url = "ws+unix://"+host+":";
+    this._websocket_url = "ws+unix://"+host+":";
   } else {
     this._protocol = secure ? Https : Http;
     secure = secure ? "s" : "";
@@ -33,7 +33,7 @@ module.exports = function (host, secure) {
       };
     }
     this._request_url = "http"+secure+"://"+this._options.hostname+":"+this._options.port;
-    this._connect_url = "ws"+secure+"://"+this._options.hostname+":"+this._options.port;
+    this._websocket_url = "ws"+secure+"://"+this._options.hostname+":"+this._options.port;
   }
   return this;
 };
@@ -100,9 +100,6 @@ module.exports.prototype.request = function request (method, path, headers, body
   }).on("error", callback).end(body);
 };
 
-module.exports.prototype.connect = function connect (path) {
-  path = path || "";
-  var ws = new Ws(this._connect_url+this._prefix+path);
-  ws.binaryType = "arraybuffer";
-  return ws;
+module.exports.prototype.WebSocket = function WebSocket (path) {
+  return new Ws(this._websocket_url+this._prefix+(path||""));
 };

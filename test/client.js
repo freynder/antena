@@ -5,6 +5,6 @@ module.exports = (antena) => {
     console.log(response);
   });
   console.log(antena.request("PUT", "/bar", {}, "sync-request"));
-  const websocket = antena.connect("/bar");
+  const websocket = antena.WebSocket("/bar");
   websocket.onmessage = (event) => { console.log(event.data) };
 };
