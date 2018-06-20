@@ -8,7 +8,6 @@
   },
   "repository": "lachrist/antena",
   "license": "MIT",
-  "main": "/node.js",
   "dependencies": {
     "ws": "^5.2.0"
   },
