@@ -1,4 +1,4 @@
-const Antena = require("../browser.js");
+const Antena = require("../browser");
 const Client = require("./client.js");
 const antena = new Antena();
 if (antena.platform !== "browser")

@@ -1,5 +1,5 @@
 
-const Fork = require("./fork.js");
+const Fork = require("../fork.js");
 const ParseHeaders = require("./parse-headers.js");
 
 module.exports = function (host, secure) {
