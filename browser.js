@@ -5,6 +5,7 @@ const ParseHeaders = require("./parse-headers.js");
 module.exports = function (host, secure) {
   if (!new.target)
     throw new Error("Antena is a constructor");
+  this.platform = "node";
   host = host || location.host;
   secure = (location.origin.indexOf("https://") === 0 || secure) ? "s" : "";
   this._prefix = "";

@@ -9,6 +9,7 @@ const Fork = require("./fork.js");
 module.exports = function (host, secure) {
   if (!new.target)
     throw new Error("Antena is a constructor");
+  this.platform = "node";
   this._prefix = "";
   if (typeof host === "string" && host.indexOf("/") !== -1) {
     if (secure)

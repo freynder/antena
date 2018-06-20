@@ -63,3 +63,8 @@ Isomorph http client.
 ## `antena2 = antena1.fork(splitter)`
 
 * `splitter :: string`
+
+## plaform = antena.platform
+
+* `platform :: string`
+  Either `"node"` or `"browser"`.
