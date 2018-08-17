@@ -30,6 +30,8 @@ Isomorph http client.
 * `secure :: boolean`
   Note that is the page is served accross `https`, this parameter will be overwritten to `true`;
 
+## `antena = require("antena/mock")(host, secure)`
+
 ## `antena.request(method, path, headers, body, callback)`
 
 * `method :: string`
@@ -67,4 +69,4 @@ Isomorph http client.
 ## plaform = antena.platform
 
 * `platform :: string`
-  Either `"node"` or `"browser"`.
+  Either `"node"`, `"browser"` or, `"mock"`.

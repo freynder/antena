@@ -9,6 +9,7 @@
   "repository": "lachrist/antena",
   "license": "MIT",
   "dependencies": {
+    "posix-socket": "0.0.3",
     "ws": "^5.2.0"
   },
   "keywords": [

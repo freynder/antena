@@ -1,6 +1,6 @@
 module.exports = function fork (splitter) {
-  const emitter = Object.create(Object.getPrototypeOf(this));
-  Object.assign(emitter, this);
-  emitter._prefix += "/"+splitter;
-  return emitter;
+  const spawn = Object.create(Object.getPrototypeOf(this));
+  Object.assign(spawn, this);
+  spawn._prefix += "/"+splitter;
+  return spawn;
 };
