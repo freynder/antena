@@ -1,6 +1,6 @@
 
-const PosixSocket = require("posix-socket");
 const Net = require("net");
+const PosixSocket = require("posix-socket");
 const Messaging = require("./messaging.js");
 
 const convert = (address) => {
@@ -86,17 +86,15 @@ module.exports = (address, session) => {
     request
   };
   PosixSocket.connect(emitter._sockfd, address.posix);
-  if (address.domain !== PosixSocket.AF_LOCAL) {
+  if (address.domain !== PosixSocket.AF_LOCAL)
     PosixSocket.setsockopt(emitter._sockfd, PosixSocket.IPPROTO_TCP, PosixSocket.TCP_NODELAY, 1);
-    emitter._socket.setNoDelay(true);
-  }
-  output(emitter._sockfd, "?"+session);
+  output(emitter._sockfd, "@"+session);
   const buffer = Buffer.allocUnsafe(Buffer.byteLength(session)+5);
   emitter._socket._antena_emitter = emitter;
   emitter._socket.on("error", onerror);
   Messaging.initialize(emitter._socket);
   Messaging.input(emitter._socket, onmessage);
-  Messaging.output(emitter._socket, "_"+session);
+  Messaging.output(emitter._socket, "#"+session);
   return emitter;
 };
 
@@ -113,11 +111,11 @@ function onerror (error) {
 }
 
 function send (string) {
-  Messaging.output(this._socket, string);
+  output(this._sockfd, "!"+string);
 }
 
 function request (string) {
-  output(this._sockfd, string);
+  output(this._sockfd, "?"+string);
   PosixSocket.recv(this._sockfd, BUFFER, 4, PosixSocket.MSG_WAITALL);
   const length = HEAD_VIEW[0];
   if (length - 4 > BUFFER.length)

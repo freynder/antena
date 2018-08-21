@@ -4,7 +4,7 @@ const Net = require("net");
 const Http = require("http");
 const Path = require("path");
 const Client = require("./client.js");
-const Receptor = require("../receptor.js");
+const Receptor = require("../../receptor.js");
 
 const server1 = Net.createServer();
 const server2 = Net.createServer();

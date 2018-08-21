@@ -9,7 +9,7 @@ function ondata (buffer) {
       if (buffer.length >= boundary) {
         this._antena_receive(buffer.toString("utf16le", 4, boundary));
         if (buffer.length > boundary) {
-          ondata.call(this, buffer.slice(0, boundary));
+          ondata.call(this, buffer.slice(boundary));
         }
       } else {
         if (this._antena_buffer.length <= buffer.length) {
@@ -60,3 +60,4 @@ exports.output = (socket, message) => {
   buffer.write(message, 4, "utf16le");
   socket.write(buffer);
 };
+

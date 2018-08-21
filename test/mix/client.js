@@ -1,5 +1,5 @@
 
-const Emitter = require("../emitter.js")
+const Emitter = require("../../emitter.js")
 
 module.exports = (address, session) => {
   const emitter = Emitter(address, session);
