@@ -121,5 +121,5 @@ function request (string) {
   if (length - 4 > BUFFER.length)
     initialize(length + 4);
   PosixSocket.recv(this._sockfd, BUFFER, length - 4, PosixSocket.MSG_WAITALL);
-  return String.fromCharCode.apply(null, new Uint16Array(BUFFER, 0, length));
+  return String.fromCharCode.apply(null, new Uint16Array(BUFFER, 0, (length - 4) / 2));
 }
