@@ -46,25 +46,24 @@ Handler for `emitter.send(message)`.
 
 ### emitter = require("antena/emitter")(address, session)
 
-Create a new emitter 
-
-* `address`
-  * Node
-    * `number`
-      * Port number, eg `8080`: alias for `"[::1]:8080"`
-    * `string`
-      * Port string, eg `"8080"`: alias for `"[::1]:8080"`
-      * IPC, eg `/tmp/antena.sock`: a path to unix domain socket.
-      * IPv4, eg `127.0.0.1:8080`: concatenation of a IPv4 address and a port
-      * IPv6, eg `[::1]:8080`: concatenation of an IPv6 address and a port
-  * Browser
-    * `object`
+* `address :: object | string | number | antena.Receptor`:
+  Antena will choose between the three mode below:
+  * Browser: if `window` is defined
+    * `string`, splitter; eg `"__antena__"` is an alias for `{splitter:"__antena__"}`
+    * `object`, options:
       * `secure :: boolean`, default: `location.protocol === "https:`
       * `hostname :: string`, default: `location.hostname`
       * `port :: number`, default: `location.port`
       * `splitter :: string`: default: `"__antena__"`
+  * Node: if `window` is not defined and `address` is not an object
+    * `number`, port number; eg `8080`: is an alias for `"[::1]:8080"`
     * `string`
-  * Mock: `antena.Receptor`
+      * Port string; eg `"8080"`: alias for `"[::1]:8080"`
+      * Local socket address;  eg `/tmp/antena.sock`
+      * IPv4 and port; eg `127.0.0.1:8080`
+      * IPv6 and port: eg `[::1]:8080`
+  * Mock: if `window`  is not defined and `address` is an object, address must be an `antena.Receptor` 
+* `session :: string`
 
 ### result = emitter.request(query)
 
