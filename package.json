@@ -1,7 +1,7 @@
 {
   "name": "antena",
-  "description": "Isomorph http client",
-  "version": "1.2.1",
+  "description": "Isomorphic communication library",
+  "version": "2.0.0",
   "author": {
     "name": "Laurent Christophe",
     "email": "lachrist@vub.ac.be"
@@ -9,8 +9,8 @@
   "repository": "lachrist/antena",
   "license": "MIT",
   "dependencies": {
-    "posix-socket": "0.0.3",
-    "ws": "^5.2.0"
+    "posix-socket": "0.0.6",
+    "ws": "^6.0.0"
   },
   "keywords": [
     "Request",

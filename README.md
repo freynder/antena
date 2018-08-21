@@ -1,72 +1,95 @@
 # Antena
 
-Isomorph http client.
+Antena is yet an other communication library.
 
-## `antena = require("antena/node")(host, secure)`
+## Receptor
 
-* `host :: string | number`
-  Example of valid host:
-  * `"localhost:8080"`
-  * `"localhost"`
-    Use default http ports (443 if secure is truthy else 80).
-  * `"8080`
-    Same as `"localhost:8080"`
-  * `8080`
-    Same as `"localhost:8080"`
-  * `/tmp/unix-domain-socket.sock`
-    Unix domain sockets can only be used if secure is falsy.
-  * `\\\\?\\pipe\window-pipe`
-    Windows pipes can only be used if secure is falsy.
-* `secure :: boolean` 
+### receptor = require("antena/receptor")()
 
-## `antena = require("antena/browser")(host, secure)`
+Create a new receptor.
+* `receptor :: antena.Receptor`
 
-* `host :: string | undefined`
-  * `"localhost:8080"`
-  * `"localhost"`
-    Use default http ports (443 if secure is truthy else 80).
-  * `undefined`
-    Same as providing the page's host (`window.location.host`).
-* `secure :: boolean`
-  Note that is the page is served accross `https`, this parameter will be overwritten to `true`;
+### receptor.attach(server, splitter)
 
-## `antena = require("antena/mock")(host, secure)`
+Attach a server to a receptor to handle communication with remote emitters.
 
-## `antena.request(method, path, headers, body, callback)`
+* `receptor :: antena.Receptor`
+* `server :: net.Server | http.Server | https.Server`:
+  * `net.Server`:
+    Handle connection from node emitters by listening to the `connection` event.
+  * `http.Server | https.Server`:
+    Handle connection from browser emitters by overwriting the `request` and `upgrade` listeners.
+    Events whose url starts with the `splitter` parameter will be handled by Antena.
+    Other events will be dispatched to *existing* event handlers.
+* `splitter :: string`, default `"__antena__"`:
+  If `server` is a http(s) server, this string will be used to separate Antena traffic from regular traffic.
 
-* `method :: string`
-* `path :: string`
-* `headers :: object`
-* `body :: string`
-* `callback(error, [status, message, headers, body])`
-  * `error :: Error`
-  * `status :: number`
-  * `message :: string`
-  * `headers :: object`
-  * `body :: string`
+### receptor.onrequest = (session, query, callback) => { ... }
 
-## `[status, message, headers2, body2] = antena.request(method, path, headers1, body1)`
+Handler for `emitter.request(query)`.
 
-* `method :: string`
-* `path :: string`
-* `hearders1 :: object`
-* `body1 :: string`
-* `status :: number`
+* `receptor :: antena.Receptor`
+* `session :: string`
+* `request :: string`
+* `callback :: function`
+  * `result :: String`
+
+### receptor.onmessage = (session, message) => { ... }
+
+Handler for `emitter.send(message)`.
+
+* `receptor :: antena.Receptor`
+* `session :: string`
 * `message :: string`
-* `headers2 :: object`
-* `body2 :: string`
 
-## `websocket = antena.WebSocket(path)`
+## Emitter
 
-* `path :: string`
-* `websocket :: browser.WebSocket || ws.WebSocket`
-  Browser style listeners: `onopen`, `onmessage`, `onerror` and `onclose` are isomorphic.
+### emitter = require("antena/node/emitter")(address, session)
 
-## `antena2 = antena1.fork(splitter)`
+Create a new node emitter.
 
-* `splitter :: string`
+* `address :: string | number`:
+  * Port number, eg `8080`: alias for `"[::1]:8080"`
+  * Port string, eg `"8080"`: alias for "[::1]:8080"
+  * IPC, eg `/tmp/antena.sock`: a path to unix domain socket.
+  * IPv4, eg `127.0.0.1:8080`: concatenation of a IPv4 address and a port
+  * IPv6, eg `[::1]:8080`: concatenation of an IPv6 address and a port
+* `session :: string`:
+  A supposedly unique session ID for the receptor to separate between emitter connections.
+* `emitter :: antena.Emitter`
 
-## plaform = antena.platform
+### emitter = require("antena/browser/emitter")(options, session)
 
-* `platform :: string`
-  Either `"node"`, `"browser"` or, `"mock"`.
+Create a new browser emitter.
+
+* `options :: object`:
+  * `secure :: boolean`, default: `location.protocol === "https:`
+  * `hostname :: string`, default: `location.hostname`
+  * `port :: number`, default: `location.port`
+  * `splitter :: string`: default: `"__antena__"`
+* `session :: string`
+* `emitter :: antena.Emitter`
+
+### emitter = require("antena/mock/emitter")(receptor, session)
+
+Create a new mock emitter.
+
+* `receptor :: antena.Receptor`
+* `session :: string`
+* `emitter :: antena.Emitter`
+
+### result = emitter.request(query)
+
+* `emitter :: antena.Emitter`
+* `query :: string`: 
+* `result :: string`: the receptor's response
+
+### emitter.send(message)
+
+* `emitter :: antena.Emitter`
+* `message :: string`
+
+### emitter.onmessage = (message) => { ... }
+
+* `emitter :: antena.Emitter`
+* `message :: string`

@@ -1,10 +1,10 @@
-module.exports = (antena) => {
-  antena.request("PUT", "/bar", {}, "async-request", (error, response) => {
-    if (error)
-      throw error;
-    console.log("Response", response);
-  });
-  console.log(antena.request("PUT", "/bar", {}, "sync-request"));
-  const websocket = antena.WebSocket("/bar");
-  websocket.onmessage = (event) => { console.log(event.data) };
+
+module.exports = (emitter) => {
+  emitter.onmessage = (message) => {
+   console.log("ONMESSAGE", emitter.session, message);
+  }
+  console.log("SEND", emitter.session, "hello")
+  emitter.send("hello");
+  console.log("REQUEST", emitter.session, "world");
+  console.log("RESPONSE", emitter.session, emitter.request("world"));
 };
