@@ -1,5 +1,8 @@
 
-module.exports = (emitter) => {
+const Emitter = require("../emitter.js")
+
+module.exports = (address, session) => {
+  const emitter = Emitter(address, session);
   emitter.onmessage = (message) => {
    console.log("ONMESSAGE", emitter.session, message);
   }

@@ -1,5 +1,7 @@
 
 module.exports = (options = {}, session = Math.random().toString(36).substring(2)) => {
+  if (typeof options === "string")
+    options = {splitter:options};
   const secure = options.secure || location.protocol === "https:" ? "s" : "";
   const hostname = options.hostname || location.hostname;
   const port = (options.port||location.port) ? ":" + (options.port||location.port) : "";

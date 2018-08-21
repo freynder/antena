@@ -5,7 +5,6 @@ const Http = require("http");
 const Path = require("path");
 const Client = require("./client.js");
 const Receptor = require("../receptor.js");
-const MockEmitter = require("../mock");
 
 const server1 = Net.createServer();
 const server2 = Net.createServer();
@@ -37,5 +36,4 @@ receptor.onrequest = (session, request, callback) => {
   callback(request+request);
 }
 
-const emitter = MockEmitter(receptor, "mock-session");
-Client(emitter);
+Client(receptor, "mock-session");

@@ -44,45 +44,33 @@ Handler for `emitter.send(message)`.
 
 ## Emitter
 
-### emitter = require("antena/node/emitter")(address, session)
+### emitter = require("antena/emitter")(address, session)
 
-Create a new node emitter.
+Create a new emitter 
 
-* `address :: string | number`:
-  * Port number, eg `8080`: alias for `"[::1]:8080"`
-  * Port string, eg `"8080"`: alias for "[::1]:8080"
-  * IPC, eg `/tmp/antena.sock`: a path to unix domain socket.
-  * IPv4, eg `127.0.0.1:8080`: concatenation of a IPv4 address and a port
-  * IPv6, eg `[::1]:8080`: concatenation of an IPv6 address and a port
-* `session :: string`:
-  A supposedly unique session ID for the receptor to separate between emitter connections.
-* `emitter :: antena.Emitter`
-
-### emitter = require("antena/browser/emitter")(options, session)
-
-Create a new browser emitter.
-
-* `options :: object`:
-  * `secure :: boolean`, default: `location.protocol === "https:`
-  * `hostname :: string`, default: `location.hostname`
-  * `port :: number`, default: `location.port`
-  * `splitter :: string`: default: `"__antena__"`
-* `session :: string`
-* `emitter :: antena.Emitter`
-
-### emitter = require("antena/mock/emitter")(receptor, session)
-
-Create a new mock emitter.
-
-* `receptor :: antena.Receptor`
-* `session :: string`
-* `emitter :: antena.Emitter`
+* `address`
+  * Node
+    * `number`
+      * Port number, eg `8080`: alias for `"[::1]:8080"`
+    * `string`
+      * Port string, eg `"8080"`: alias for `"[::1]:8080"`
+      * IPC, eg `/tmp/antena.sock`: a path to unix domain socket.
+      * IPv4, eg `127.0.0.1:8080`: concatenation of a IPv4 address and a port
+      * IPv6, eg `[::1]:8080`: concatenation of an IPv6 address and a port
+  * Browser
+    * `object`
+      * `secure :: boolean`, default: `location.protocol === "https:`
+      * `hostname :: string`, default: `location.hostname`
+      * `port :: number`, default: `location.port`
+      * `splitter :: string`: default: `"__antena__"`
+    * `string`
+  * Mock: `antena.Receptor`
 
 ### result = emitter.request(query)
 
 * `emitter :: antena.Emitter`
-* `query :: string`: 
-* `result :: string`: the receptor's response
+* `query :: string` 
+* `result :: string`
 
 ### emitter.send(message)
 
