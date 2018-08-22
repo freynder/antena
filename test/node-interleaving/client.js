@@ -1,6 +1,6 @@
 
 const Emitter = require("../../emitter.js")
-const emitter = Emitter(process.argv[2], "swaggy");
+const emitter = Emitter(process.argv[process.argv.length - 1], "swaggy");
 
 emitter.send("hello");
 emitter.request("foobar");

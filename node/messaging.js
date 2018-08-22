@@ -12,7 +12,7 @@ function ondata (buffer) {
           ondata.call(this, buffer.slice(boundary));
         }
       } else {
-        if (this._antena_buffer.length <= buffer.length) {
+        if (buffer.length >= this._antena_buffer.length) {
           this._antena_buffer = buffer;
         } else {
           buffer.copy(this._antena_buffer);
@@ -23,7 +23,9 @@ function ondata (buffer) {
     }
   } else {
     if (this._antena_buffer.length < this._antena_length + buffer.length) {
-      this._antena_buffer = this._antena_buffer.copy(Buffer.allocUnsafe(this._antena_length + buffer.length));
+      const temporary = this._antena_buffer;
+      this._antena_buffer = Buffer.allocUnsafe(this._antena_length + buffer.length);
+      temporary.copy(this._antena_buffer);
     }
     buffer.copy(this._antena_buffer, this._antena_length);
     this._antena_length += buffer.length;

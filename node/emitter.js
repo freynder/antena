@@ -55,7 +55,7 @@ const convert = (address) => {
 let BUFFER, HEAD_VIEW, BODY_VIEW;
 
 const initialize = (length) => {
-  BUFFER = new ArrayBuffer(1024);
+  BUFFER = new ArrayBuffer(length);
   HEAD_VIEW = new Uint32Array(BUFFER, 0, 1);
   BODY_VIEW = new Uint16Array(BUFFER, 4);
 }
@@ -64,7 +64,7 @@ initialize(1024);
 
 const output = (sockfd, message) => {
   const length = 2 * message.length + 4;
-  if (length > BUFFER.length)
+  if (length > BUFFER.byteLength)
     initialize(length);
   HEAD_VIEW[0] = length;
   for (let index = 0, length = message.length; index < length; index++)
@@ -118,8 +118,8 @@ function request (string) {
   output(this._sockfd, "?"+string);
   PosixSocket.recv(this._sockfd, BUFFER, 4, PosixSocket.MSG_WAITALL);
   const length = HEAD_VIEW[0];
-  if (length - 4 > BUFFER.length)
-    initialize(length + 4);
+  if (length - 4 > BUFFER.byteLength)
+    initialize(length - 4);
   PosixSocket.recv(this._sockfd, BUFFER, length - 4, PosixSocket.MSG_WAITALL);
   return String.fromCharCode.apply(null, new Uint16Array(BUFFER, 0, (length - 4) / 2));
 }
