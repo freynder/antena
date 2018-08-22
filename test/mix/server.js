@@ -19,6 +19,8 @@ server3.on("request", (req, res) => {
   }
 });
 
+const state = {};
+
 server1.listen("/tmp/antena-test.sock");
 server2.listen(8000);
 server3.listen(8080);
@@ -28,12 +30,22 @@ receptor.attach(server1);
 receptor.attach(server2);
 receptor.attach(server3, "antena-traffic");
 receptor.onmessage = (session, message) => {
-  console.log("ONMESSAGE", session, message);
-  receptor.send(session, message+message);
+  receptor.send(session, "message-echo: "+message+" ");
+  if (state[session]) {
+    state[session](message);
+    delete state[session];
+  } else {
+    state[session] = message;
+  }
 }
 receptor.onrequest = (session, request, callback) => {
-  console.log("ONREQUEST", session, request);
-  callback(request+request);
+  receptor.send(session, "request-echo: "+request);
+  if (state[session]) {
+    callback(state[session]);
+    delete state[session];
+  } else {
+    state[session] = callback;
+  }
 }
 
 Client(receptor, "mock-session");

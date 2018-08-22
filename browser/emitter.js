@@ -7,15 +7,17 @@ module.exports = (options = {}, session = Math.random().toString(36).substring(2
   const port = (options.port||location.port) ? ":" + (options.port||location.port) : "";
   const splitter = options.splitter || "__antena__";
   const client = {
-    _request_url: "http"+secure+"://"+hostname+port+"/"+splitter+"/"+session,
+    _request_url: "http"+secure+"://"+hostname+port+"/"+splitter+"/~"+session,
     _connect_url: "ws"+secure+"://"+hostname+port+"/"+splitter+"/"+session,
-    _websocket: [],
+    _websocket: {
+      _url: "http"+secure+"://"+hostname+port+"/"+splitter+"/-"+session,
+      send: fallback_send
+    },
     onmessage: null,
     session,
     send,
     request
   };
-  client._websocket.send = Array.prototype.push;
   const websocket = new WebSocket(client._connect_url);
   websocket._antena_client = client;
   websocket.onopen = onopen;
@@ -28,9 +30,13 @@ function onmessage (event) {
 }
 
 function onopen (event) {
-  for (let index = 0; index < this._antena_client._websocket.length; index++)
-    this.send(this._antena_client._websocket[index]);
   this._antena_client._websocket = this;
+}
+
+function fallback_send (message) {
+  const request = new XMLHttpRequest();
+  request.open("PUT", this._url);
+  request.send(message);
 }
 
 function send (message) {

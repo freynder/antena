@@ -1,7 +1,7 @@
 
 const Ws = require("ws");
 
-const sessionof = (url, splitter) => {
+const headof = (url, splitter) => {
   if (url.startsWith("http://")) {
     url = url.substring(url.indexOf("/", 7));
   }
@@ -38,16 +38,27 @@ function onmessage (message) {
   this._antena_receptor.onmessage(this._antena_session, message);
 }
 
+const dispatch = (receptor, head, body, response) => {
+  if (head[0] === "-") {
+    receptor.onmessage(head.substring(1), body);
+    response.end();
+  } else if (head[0] === "~") {
+    receptor.onrequest(head.substring(1), body, (body) => { response.end(body) });
+  } else {
+    throw new Error("Request head should start with either '-' or '~', got: "+head);
+  }
+};
+
 function onrequest (request, response) {
-  let session = sessionof(request.url, this._antena_splitter);
-  if (session) {
+  let head = headof(request.url, this._antena_splitter);
+  if (head) {
     if (request.headers["content-length"] === 0) {
-      this._antena_receptor.onrequest(session, "", (body) => { response.end(body) });
+      dispatch(this._antena_receptor, head, body, response);
     } else {
       let body = "";
       request.on("data", (data) => { body += data });
       request.on("end", () => {
-        this._antena_receptor.onrequest(session, body, (body) => { response.end(body) });
+        dispatch(this._antena_receptor, head, body, response);
       });
     }
   } else {
@@ -56,7 +67,7 @@ function onrequest (request, response) {
 }
 
 function onupgrade (request, socket, head) {
-  let session = sessionof(request.url, this._antena_splitter);
+  let session = headof(request.url, this._antena_splitter);
   if (session) {
     this._antena_ws_server.handleUpgrade(request, socket, head, (websocket) => {
       if (session in this._antena_receptor._connections) {
