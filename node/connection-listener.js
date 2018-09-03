@@ -1,18 +1,15 @@
 
 const Messaging = require("./messaging.js");
 
-module.exports = (receptor, server) => {
-  server._antena_receptor = receptor;
-  server.on("connection", onconnection);
-  server.on("error", onerror);
-};
-
-function onconnection (socket) {
-  socket._antena_receptor = this._antena_receptor;
-  socket.on("error", onerror);
-  socket.setNoDelay(true);
-  Messaging.initialize(socket);
-  Messaging.input(socket, receive_initial);
+module.exports = function () {
+  return (socket, next) => {
+    socket._antena_receptor = this;
+    socket.on("error", onerror);
+    socket.setNoDelay(true);
+    Messaging.initialize(socket);
+    Messaging.input(socket, receive_initial);
+    return true;
+  };
 };
 
 function onerror (error) {
@@ -39,7 +36,7 @@ function receive_initial (string) {
           Messaging.output(this, connection[index]);
         }
       }
-      this._antena_send = _antena_send;
+      this._antena_push = _antena_push;
       this._antena_receptor._connections[this._antena_session] = this;
       this.on("close", onclose);
     }
@@ -48,7 +45,7 @@ function receive_initial (string) {
   }
 }
 
-function _antena_send (string) {
+function _antena_push (string) {
   Messaging.output(this, string);
 }
 
@@ -58,11 +55,11 @@ function onclose () {
 
 function receive (string) {
   if (string[0] === "?") {
-    this._antena_receptor.onrequest(this._antena_session, string.substring(1), (string) => {
+    this._antena_receptor.onpull(this._antena_session, string.substring(1), (string) => {
       Messaging.output(this, string);
     });
   } else if (string[0] === "!") {
-    this._antena_receptor.onmessage(this._antena_session, string.substring(1));
+    this._antena_receptor.onpush(this._antena_session, string.substring(1));
   } else {
     this.destroy(new Error("Incoming message should start with either '?' or '!', got: "+string));
   }

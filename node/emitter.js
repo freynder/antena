@@ -3,6 +3,10 @@ const Net = require("net");
 const PosixSocket = require("posix-socket");
 const Messaging = require("./messaging.js");
 
+const signal = (error) => {
+  throw error;
+}
+
 const convert = (address) => {
   if (typeof address === "number" || /^[0-9]+$/.test(address))
     address = "[::1]:"+address;
@@ -80,10 +84,11 @@ module.exports = (address, session) => {
   const emitter = {
     _sockfd: PosixSocket.socket(address.domain, PosixSocket.SOCK_STREAM, 0),
     _socket: Net.connect(address.net),
+    onerror: signal,
     session: session,
-    onmessage: null,
-    send,
-    request
+    onpush: null,
+    push,
+    pull
   };
   PosixSocket.connect(emitter._sockfd, address.posix);
   if (address.domain !== PosixSocket.AF_LOCAL)
@@ -99,22 +104,18 @@ module.exports = (address, session) => {
 };
 
 function onmessage (string) {
-  this._antena_emitter.onmessage(string);
+  this._antena_emitter.onpush(string);
 }
 
 function onerror (error) {
-  if ("onerror" in this._antena_emitter) {
-    this._antena_emitter.onerror(error);
-  } else {
-    throw error;
-  }
+  this._antena_emitter.onerror(error);
 }
 
-function send (string) {
+function push (string) {
   output(this._sockfd, "!"+string);
 }
 
-function request (string) {
+function pull (string) {
   output(this._sockfd, "?"+string);
   PosixSocket.recv(this._sockfd, BUFFER, 4, PosixSocket.MSG_WAITALL);
   const length = HEAD_VIEW[0];

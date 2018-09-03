@@ -6,13 +6,12 @@ const server = Net.createServer();
 server.listen(process.argv[process.argv.length - 1]);
 
 const receptor = Receptor();
+server.on("connection", receptor.ConnectionListener());
 
-receptor.attach(server);
-
-receptor.onrequest = (origin, query, callback) => {
+receptor.onpull = (origin, query, callback) => {
   callback(query);
 };
 
-receptor.onmessage = (origin, message) => {
-  receptor.send(origin, message);
+receptor.onpush = (origin, message) => {
+  receptor.push(origin, message);
 };

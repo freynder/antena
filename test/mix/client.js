@@ -4,14 +4,14 @@ const Emitter = require("../../emitter.js")
 module.exports = (address, session) => {
   const emitter = Emitter(address, session);
   let input = "";
-  emitter.onmessage = (message) => {
+  emitter.onpush = (message) => {
     input += message;
   }
   function run () {
-    emitter.send("hello");
-    const response = emitter.request("world");
-    if (response !== "hello") {
-      throw new Error("Expected "+JSON.stringify(session+"hello"+"world")+", got: "+JSON.stringify(response));
+    emitter.push("hello");
+    const result = emitter.pull("world");
+    if (result !== "hello") {
+      throw new Error("Expected "+JSON.stringify(session+"hello"+"world")+", got: "+JSON.stringify(result));
     }
   }
   run();

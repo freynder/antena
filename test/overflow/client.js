@@ -6,15 +6,15 @@ const array = new Array(2048);
 array.fill("a");
 const string = array.join("");
 
-emitter.send(string);
-emitter.onmessage = (message) => {
+emitter.push(string);
+emitter.onpush = (message) => {
   if (message !== string) {
     throw new Error("Message mismatch");
   }
   process.exit(0);
 }; 
 
-const response = emitter.request(string); 
+const response = emitter.pull(string); 
 if (response !== string) {
   throw new Error("Request mismatch, got: "+response);
 }

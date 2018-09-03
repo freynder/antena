@@ -1,24 +1,21 @@
 
-const Http = require("http");
-const Https = require("https");
-const AttachBrowser = require("./browser/attach.js");
-const AttachNode = require("./node/attach.js");
+const ConnectionListener = require("./node/connection-listener.js");
+const RequestMiddleware = require("./browser/request-middleware.js");
+const UpgradeMiddleware = require("./browser/upgrade-middleware.js");
 
-module.exports = () => ({_connections: Object.create(null), send, attach});
+module.exports = () => ({
+  _connections: Object.create(null),
+  push,
+  ConnectionListener,
+  RequestMiddleware,
+  UpgradeMiddleware,
+});
 
-function send (session, message) {
+function push (session, message) {
   if (session in this._connections) {
-    this._connections[session]._antena_send(message);
+    this._connections[session]._antena_push(message);
   } else {
     this._connections[session] = [message]
-    this._connections[session]._antena_send = Array.prototype.push;
-  }
-}
-
-function attach (server, splitter) {
-  if (server instanceof Http.Server || server instanceof Https.Server) {
-    AttachBrowser(this, server, splitter)
-  } else {
-    AttachNode(this, server);
+    this._connections[session]._antena_push = Array.prototype.push;
   }
 }
