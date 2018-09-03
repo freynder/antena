@@ -122,5 +122,5 @@ function pull (string) {
   if (length - 4 > BUFFER.byteLength)
     initialize(length - 4);
   PosixSocket.recv(this._sockfd, BUFFER, length - 4, PosixSocket.MSG_WAITALL);
-  return String.fromCharCode.apply(null, new Uint16Array(BUFFER, 0, (length - 4) / 2));
+  return Buffer.from(BUFFER, 0, length - 4).toString("utf16le");
 }

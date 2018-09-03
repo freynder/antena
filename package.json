@@ -1,7 +1,7 @@
 {
   "name": "antena",
   "description": "Isomorphic communication library for node and browsers",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "author": {
     "name": "Laurent Christophe",
     "email": "lachrist@vub.ac.be"
