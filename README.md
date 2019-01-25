@@ -1,7 +1,7 @@
 # Antena
 
 Antena is yet an other JavaScript communication library.
-Antena normalizes the server-client model for node and browsers.
+Antena normalises the server-client model for node and browsers.
 In Antena, the server is called receptor and its clients are called emitters.
 Both receptors and emitters can perform push notifications but only emitters can perform synchronous pull requests.
 For node emitters, synchronous pull requests are implemented using `https://www.npmjs.com/package/posix-socket` which is much faster than using the synchronous methods of `child_process` and `fs`.
@@ -40,7 +40,7 @@ server.on("request", (request, response) => {
 });
 const onupgrade = receptor.UpgradeMiddleware();
 server.on("upgrade", (request, socket, head) => {
-  if (!onupgrade(request, socket, head) {
+  if (!onupgrade(request, socket, head)) {
     // handle upgrade
   }
 });
@@ -62,13 +62,13 @@ server.on("upgrade", (request, socket, head) => {
 });
 ```
 
-### receptor = require("antena/receptor")()
+### `receptor = require("antena/receptor")()`
 
 Create a new receptor.
 
 * `receptor :: antena.Receptor`
 
-### receptor.push(session, message);
+### `receptor.push(session, message)`
 
 Push a message to a emitter identified by its session.
 
@@ -76,7 +76,7 @@ Push a message to a emitter identified by its session.
 * `session :: string`
 * `message :: string`
 
-### receptor.onpush = (session, message) => { ... }
+### `receptor.onpush = (session, message) => { ... }`
 
 Handler for `emitter.push(message)`.
 
@@ -84,7 +84,7 @@ Handler for `emitter.push(message)`.
 * `session :: string`
 * `message :: string`
 
-### receptor.onpull = (session, query, callback) => { ... }
+### `receptor.onpull = (session, query, callback) => { ... }`
 
 Handler for `emitter.pull(message)`.
 
@@ -94,7 +94,7 @@ Handler for `emitter.pull(message)`.
 * `callback(result)`
   * `result :: String`
 
-### onconnection = receptor.ConnectionListener();
+### `onconnection = receptor.ConnectionListener()`
 
 Create a listener for the `connection` event of a `net.Server`.
 
@@ -102,7 +102,7 @@ Create a listener for the `connection` event of a `net.Server`.
 * `onconnection(socket)`
   * `socket :: net.Socket`
 
-### onrequest = receptor.RequestMiddleware([splitter]);
+### `onrequest = receptor.RequestMiddleware([splitter])`
 
 Create a middleware for the `request` event of a `http(s).Server`.
 
@@ -117,7 +117,7 @@ Create a middleware for the `request` event of a `http(s).Server`.
   * `handled :: boolean`
     Indicate whether the request was handled by antena.
 
-### onupgrade = receptor.UpgradeMiddleware([splitter]);
+### `onupgrade = receptor.UpgradeMiddleware([splitter])`
 
 Create middleware for the `upgrade` event of a `http(s).Server`.
 
@@ -135,14 +135,14 @@ Create middleware for the `upgrade` event of a `http(s).Server`.
 
 ## Emitter
 
-### emitter = require("antena/emitter")(address, session)
+### `emitter = require("antena/emitter")(address, session)`
 
 * `address :: object | string | number | antena.Receptor`:
   Antena will choose between the three mode below:
   * Browser: if `window` is defined
     * `string`, splitter; eg `"__antena__"` is an alias for `{splitter:"__antena__"}`
     * `object`, options:
-      * `secure :: boolean`, default: `location.protocol === "https:`
+      * `secure :: `boolean`, default: `location.protocol === "https:`
       * `hostname :: string`, default: `location.hostname`
       * `port :: number`, default: `location.port`
       * `splitter :: string`: default: `"__antena__"`
@@ -156,21 +156,21 @@ Create middleware for the `upgrade` event of a `http(s).Server`.
   * Mock: if `window`  is not defined and `address` is an object, address must be an `antena.Receptor` 
 * `session :: string`
 
-### emitter.push(message)
+### `emitter.push(message)`
 
 Push a message to the emitter's receptor.
 
 * `emitter :: antena.Emitter`
 * `message :: string`
 
-### emitter.onpush = (message) => { ... }
+### `emitter.onpush = (message) => { ... }`
 
 Listen for pushes from the emitter's receptor.
 
 * `emitter :: antena.Emitter`
 * `message :: string`
 
-### result = emitter.pull(query)
+### `result = emitter.pull(query)`
 
 Pull a result from the emitter's receptor.
 
