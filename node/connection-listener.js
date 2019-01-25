@@ -2,13 +2,12 @@
 const Messaging = require("./messaging.js");
 
 module.exports = function () {
-  return (socket, next) => {
+  return (socket) => {
     socket._antena_receptor = this;
     socket.on("error", onerror);
     socket.setNoDelay(true);
     Messaging.initialize(socket);
     Messaging.input(socket, receive_initial);
-    return true;
   };
 };
 
