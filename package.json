@@ -1,7 +1,7 @@
 {
   "name": "antena",
   "description": "Isomorphic communication library for node and browsers",
-  "version": "2.1.4",
+  "version": "2.1.5",
   "author": {
     "name": "Laurent Christophe",
     "email": "lachrist@vub.ac.be"
@@ -9,7 +9,7 @@
   "repository": "lachrist/antena",
   "license": "MIT",
   "dependencies": {
-    "posix-socket": "0.0.7",
+    "posix-socket": "0.0.8",
     "ws": "^6.1.3"
   },
   "keywords": [
