@@ -57,7 +57,7 @@ Create a new receptor.
 
 * `receptor :: antena.Receptor`
 
-### `receptor.push(session, message)`
+### `receptor.send(session, message)`
 
 Push a message to an emitter identified by its session.
 
@@ -65,17 +65,17 @@ Push a message to an emitter identified by its session.
 * `session :: string`
 * `message :: string`
 
-### `receptor.onpush = (session, message) => { ... }`
+### `receptor.onmessage = (session, message) => { ... }`
 
-Handler for `emitter.push(message)`.
+Handler for `emitter.send(message)`.
 
 * `receptor :: antena.Receptor`
 * `session :: string`
 * `message :: string`
 
-### `receptor.onpull = (session, query, callback) => { ... }`
+### `receptor.onrequest = (session, query, callback) => { ... }`
 
-Handler for `emitter.pull(message)`.
+Handler for `emitter.request(message)`.
 
 * `receptor :: antena.Receptor`
 * `session :: string`
@@ -149,24 +149,34 @@ Create a middleware for the `upgrade` event of a `http(s).Server`.
 * `session :: string`:
   All subsequent push/pull requests will be tagged with this string.
 
-### `emitter.push(message)`
+### `emitter.close = () => { ... }`
+
+### `emitter.send(message)`
 
 Push a message to the emitter's receptor.
 
 * `emitter :: antena.Emitter`
 * `message :: string`
 
-### `emitter.onpush = (message) => { ... }`
+### `emitter.onmessage = ({data:message}) => { ... }`
 
 Listen for pushes from the emitter's receptor.
 
 * `emitter :: antena.Emitter`
 * `message :: string`
 
-### `result = emitter.pull(query)`
+### `result = emitter.request(query)`
 
 Pull a result from the emitter's receptor.
 
 * `emitter :: antena.Emitter`
 * `query :: string` 
 * `result :: string`
+
+### `emitter.onopen = () => { ... }`
+
+### `emitter.onclose = () => { ... }`
+
+### `emitter.onerror = (error) => { ... }`
+
+* `error :: Error`

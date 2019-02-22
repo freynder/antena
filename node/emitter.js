@@ -3,9 +3,9 @@ const Net = require("net");
 const PosixSocket = require("posix-socket");
 const Messaging = require("./messaging.js");
 
-const signal = (error) => {
-  throw error;
-}
+const signal = (error) => { throw error };
+
+const noop = () => {};
 
 const convert = (address) => {
   if (typeof address === "number" || /^[0-9]+$/.test(address))
@@ -56,71 +56,85 @@ const convert = (address) => {
   };
 };
 
-let BUFFER, HEAD_VIEW, BODY_VIEW;
+let BUFFER, VIEW;
 
 const initialize = (length) => {
   BUFFER = new ArrayBuffer(length);
-  HEAD_VIEW = new Uint32Array(BUFFER, 0, 1);
-  BODY_VIEW = new Uint16Array(BUFFER, 4);
+  VIEW = new DataView(BUFFER);
 }
 
 initialize(1024);
 
 const output = (sockfd, message) => {
-  const length = 2 * message.length + 4;
-  if (length > BUFFER.byteLength)
-    initialize(length);
-  HEAD_VIEW[0] = length;
-  for (let index = 0, length = message.length; index < length; index++)
-    BODY_VIEW[index] = message.charCodeAt(index);
-  PosixSocket.send(sockfd, BUFFER, length, 0);
+  const bytelength = 2 * message.length + 4;
+  if (bytelength > BUFFER.byteLength)
+    initialize(bytelength);
+  VIEW.setUint32(0, bytelength, true);
+  for (let index = 0, offset = 4, length = message.length; index < length; (index++, offset += 2))
+    VIEW.setUint16(offset, message.charCodeAt(index), true);
+  PosixSocket.send(sockfd, BUFFER, bytelength, 0);
 };
 
 module.exports = (address, session) => {
-  HEAD_VIEW[0] = 1;
-  if ((new Uint8Array(BUFFER))[0] !== 1)
-    throw new Error("Big endian systems are not supported");
   address = convert(address);
-  const emitter = {
-    _sockfd: PosixSocket.socket(address.domain, PosixSocket.SOCK_STREAM, 0),
-    _socket: Net.connect(address.net),
-    onerror: signal,
-    session: session,
-    onpush: null,
-    push,
-    pull
-  };
-  PosixSocket.connect(emitter._sockfd, address.posix);
+  const sockfd = PosixSocket.socket(address.domain, PosixSocket.SOCK_STREAM, 0);
+  PosixSocket.connect(sockfd, address.posix);
   if (address.domain !== PosixSocket.AF_LOCAL)
-    PosixSocket.setsockopt(emitter._sockfd, PosixSocket.IPPROTO_TCP, PosixSocket.TCP_NODELAY, 1);
-  output(emitter._sockfd, "@"+session);
-  const buffer = Buffer.allocUnsafe(Buffer.byteLength(session)+5);
-  emitter._socket._antena_emitter = emitter;
-  emitter._socket.on("error", onerror);
-  Messaging.initialize(emitter._socket);
-  Messaging.input(emitter._socket, onmessage);
-  Messaging.output(emitter._socket, "#"+session);
+    PosixSocket.setsockopt(sockfd, PosixSocket.IPPROTO_TCP, PosixSocket.TCP_NODELAY, 1);
+  output(sockfd, "?"+session);
+  const socket = Net.connect(address.net);
+  const emitter = {
+    _sockfd: sockfd,
+    _socket: socket,
+    session: session,
+    close: close,
+    send: send,
+    request: request,
+    onopen: noop,
+    onpush: noop,
+    onerror: signal,
+    onclose: noop
+  };
+  Messaging(socket);
+  socket._antena_emitter = emitter;
+  socket._antena_receive = receive;
+  socket.once("connect", onconnect);
+  socket.on("error", onerror);
+  socket.on("close", onclose);
   return emitter;
 };
 
-function onmessage (string) {
-  this._antena_emitter.onpush(string);
+function onconnect () {
+  this._antena_send("!"+this._antena_emitter.session);
+  this._antena_emitter.onopen();
 }
 
 function onerror (error) {
   this._antena_emitter.onerror(error);
 }
 
-function push (string) {
-  output(this._sockfd, "!"+string);
+function onclose () {
+  this._antena_emitter.onclose();
 }
 
-function pull (string) {
-  output(this._sockfd, "?"+string);
+function receive (string) {
+  this._antena_emitter.onmessage({data:string});
+}
+
+function close () {
+  this._socket.end();
+}
+
+function send (string) {
+  this._socket._antena_send(string);
+}
+
+function request (string) {
+  output(this._sockfd, string);
   PosixSocket.recv(this._sockfd, BUFFER, 4, PosixSocket.MSG_WAITALL);
-  const length = HEAD_VIEW[0];
-  if (length - 4 > BUFFER.byteLength)
-    initialize(length - 4);
-  PosixSocket.recv(this._sockfd, BUFFER, length - 4, PosixSocket.MSG_WAITALL);
-  return Buffer.from(BUFFER, 0, length - 4).toString("utf16le");
+  const bytelength = VIEW.getUint32(0, true) - 4;
+  if (bytelength > BUFFER.byteLength)
+    initialize(bytelength);
+  PosixSocket.recv(this._sockfd, BUFFER, bytelength, PosixSocket.MSG_WAITALL);
+  return Buffer.from(BUFFER, 0, bytelength).toString("utf16le");
 }

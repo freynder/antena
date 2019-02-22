@@ -31,23 +31,23 @@ server3.on("request", (req, res) => {
   }
 });
 server3.on("upgrade", receptor.UpgradeMiddleware("antena-traffic"));
-receptor.onpush = (session, message) => {
-  receptor.push(session, "message-echo: "+message+" ");
+receptor.onmessage = (session, message) => {
+  receptor.send(session, "message-echo: "+message+" ");
   if (state[session]) {
     state[session](message);
     delete state[session];
   } else {
     state[session] = message;
   }
-}
-receptor.onpull = (session, request, callback) => {
-  receptor.push(session, "request-echo: "+request);
+};
+receptor.onrequest = (session, request, callback) => {
+  receptor.send(session, "request-echo: "+request);
   if (state[session]) {
     callback(state[session]);
     delete state[session];
   } else {
     state[session] = callback;
   }
-}
+};
 
 Client(receptor, "mock-session");

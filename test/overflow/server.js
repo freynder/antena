@@ -8,10 +8,10 @@ server.listen(process.argv[process.argv.length - 1]);
 const receptor = Receptor();
 server.on("connection", receptor.ConnectionListener());
 
-receptor.onpull = (origin, query, callback) => {
+receptor.onrequest = (origin, query, callback) => {
   callback(query);
 };
 
-receptor.onpush = (origin, message) => {
-  receptor.push(origin, message);
+receptor.onmessage = (origin, message) => {
+  receptor.send(origin, message);
 };

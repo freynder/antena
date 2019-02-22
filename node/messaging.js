@@ -1,4 +1,13 @@
 
+module.exports = (socket) => {
+  socket.on("data", ondata);
+  socket._antena_length = 0;
+  socket._antena_buffer = Buffer.allocUnsafe(1024);
+  socket._antena_boundary = Infinity;
+  socket._antena_socket = socket;
+  socket._antena_send = send;
+};
+
 function ondata (buffer) {
   if (this._antena_length === 0) {
     if (buffer.length < 4) {
@@ -44,22 +53,9 @@ function ondata (buffer) {
   }
 }
 
-exports.initialize = (socket) => {
-  socket.on("data", ondata);
-  socket._antena_length = 0;
-  socket._antena_buffer = Buffer.allocUnsafe(1024);
-  socket._antena_boundary = Infinity;
-  socket._antena_socket = socket;
-};
-
-exports.input = (socket, callback) => {
-  socket._antena_receive = callback;
-};
-
-exports.output = (socket, message) => {
+function send (message) {
   const buffer = Buffer.allocUnsafe(2 * message.length + 4);
   buffer.writeUInt32LE(buffer.length, 0);
   buffer.write(message, 4, "utf16le");
-  socket.write(buffer);
+  this.write(buffer);
 };
-
