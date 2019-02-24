@@ -159,7 +159,7 @@ function onend () {
 };
 
 function onclose () {
-  if (this.readyState !== CLOSED) {
+  if (this._antena_emitter.readyState !== CLOSED) {
     throw new Error("This should never happen: either the connection is closed cleanly with end or it had an error");
   }
 }
