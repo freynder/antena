@@ -135,22 +135,30 @@ function onerror (error) {
 }
 
 function onend () {
-  if (this._antena_emitter.readyState !== CLOSED) {    
-    if (this._antena_emitter.readyState !== CLOSING)
-      throw new Error("This should never happen: receptors do not send FIN packets on their own");
+  const state = this._antena_emitter.readyState;
+  if (state !== CLOSED) {
     this._antena_emitter.readyState = CLOSED;
-    this._antena_emitter.onclose({
-      type: "close",
-      target: this._antena_emitter,
-      wasClean: true,
-      code: 1000,
-      reason: "Normal Closure"
-    });
+    if (state === CLOSING) {
+      this._antena_emitter.onclose({
+        type: "close",
+        target: this._antena_emitter,
+        wasClean: true,
+        code: 1000,
+        reason: "Normal Closure"
+      });
+    } else {
+      this._antena_emitter.onclose({
+        type: "close",
+        target: this._antena_emitter,
+        wasClean: false,
+        code: 1001,
+        reason: "Going Away"
+      });
+    }
   }
 };
 
 function onclose () {
-  console.log(this);
   if (this.readyState !== CLOSED) {
     throw new Error("This should never happen: either the connection is closed cleanly with end or it had an error");
   }
