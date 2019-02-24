@@ -3,6 +3,11 @@ const Net = require("net");
 const PosixSocket = require("posix-socket");
 const Messaging = require("./messaging.js");
 
+const CONNECTING = 0;
+const OPEN = 1;
+const CLOSING = 2;
+const CLOSED = 3;
+
 const signal = (error) => { throw error };
 
 const noop = () => {};
@@ -86,46 +91,102 @@ module.exports = (address, session) => {
   const emitter = {
     _sockfd: sockfd,
     _socket: socket,
-    session: session,
-    close: close,
-    send: send,
-    request: request,
+    readyState: CONNECTING,
+    session,
+    close,
+    send,
+    request,
     onopen: noop,
-    onpush: noop,
-    onerror: signal,
+    onmessage: noop,
     onclose: noop
   };
   Messaging(socket);
   socket._antena_emitter = emitter;
   socket._antena_receive = receive;
-  socket.once("connect", onconnect);
+  socket.on("connect", onconnect);
   socket.on("error", onerror);
+  socket.on("end", onend);
   socket.on("close", onclose);
   return emitter;
 };
 
 function onconnect () {
   this._antena_send("!"+this._antena_emitter.session);
-  this._antena_emitter.onopen();
+  this._antena_emitter.readyState = OPEN;
+  this._antena_emitter.onopen({
+    type: "open",
+    target: this._antena_emitter
+  });
 }
 
 function onerror (error) {
-  this._antena_emitter.onerror(error);
+  this.removeAllListeners("error");
+  this.destroy();
+  if (this._antena_emitter.readyState !== CLOSED) {
+    this._antena_emitter.readyState = CLOSED;
+    this._antena_emitter.onclose({
+      type: "close",
+      target: this._antena_emitter,
+      wasClean: false,
+      code: error.errno,
+      reason: error.message
+    });
+  }
 }
 
+function onend () {
+  if (this._antena_emitter.readyState !== CLOSED) {    
+    if (this._antena_emitter.readyState !== CLOSING)
+      throw new Error("This should never happen: receptors do not send FIN packets on their own");
+    this._antena_emitter.readyState = CLOSED;
+    this._antena_emitter.onclose({
+      type: "close",
+      target: this._antena_emitter,
+      wasClean: true,
+      code: 1000,
+      reason: "Normal Closure"
+    });
+  }
+};
+
 function onclose () {
-  this._antena_emitter.onclose();
+  console.log(this);
+  if (this.readyState !== CLOSED) {
+    throw new Error("This should never happen: either the connection is closed cleanly with end or it had an error");
+  }
 }
 
 function receive (string) {
-  this._antena_emitter.onmessage({data:string});
+  this._antena_emitter.onmessage({
+    type: "message",
+    target: this._antena_emitter,
+    data: string
+  });
 }
 
 function close () {
-  this._socket.end();
+  if (this.readyState !== CLOSING && this.readyState !== CLOSED) {
+    this.readyState = CLOSING;
+    this._socket.end();
+    setTimeout(() => {
+      if (this.readyState !== CLOSED) {
+        this._socket.destroy();
+        this.readyState === CLOSED;
+        this.onclose({
+          type: "close",
+          target: this,
+          wasClean: false,
+          code: 1002,
+          reason: "Closing handshake timeout"
+        });
+      }
+    }, 30 * 1000);
+  }
 }
 
 function send (string) {
+  if (this.readyState !== OPEN)
+    throw new Error("InvalidStateError: the connection is not open");
   this._socket._antena_send(string);
 }
 

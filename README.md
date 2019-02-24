@@ -61,15 +61,18 @@ Create a new receptor.
 
 Push a message to an emitter identified by its session.
 
-* `receptor :: antena.Receptor`
 * `session :: string`
 * `message :: string`
+
+### `receptor.onerror = (session, error) => { ... }`
+
+* `session :: string`
+* `error :: Error`
 
 ### `receptor.onmessage = (session, message) => { ... }`
 
 Handler for `emitter.send(message)`.
 
-* `receptor :: antena.Receptor`
 * `session :: string`
 * `message :: string`
 
@@ -124,6 +127,8 @@ Create a middleware for the `upgrade` event of a `http(s).Server`.
 
 ## Emitter
 
+An emitter is essentially a WebSocket with a mean to perform synchronous requests.
+
 ### `emitter = require("antena/emitter")(address, session)`
 
 * `address :: object | string | number | antena.Receptor`:
@@ -149,34 +154,36 @@ Create a middleware for the `upgrade` event of a `http(s).Server`.
 * `session :: string`:
   All subsequent push/pull requests will be tagged with this string.
 
+### `emitter.session :: string`
+
+### `emitter.readyState :: number`
+
 ### `emitter.close = () => { ... }`
 
 ### `emitter.send(message)`
 
-Push a message to the emitter's receptor.
-
-* `emitter :: antena.Emitter`
-* `message :: string`
-
-### `emitter.onmessage = ({data:message}) => { ... }`
-
-Listen for pushes from the emitter's receptor.
-
-* `emitter :: antena.Emitter`
 * `message :: string`
 
 ### `result = emitter.request(query)`
 
-Pull a result from the emitter's receptor.
-
-* `emitter :: antena.Emitter`
 * `query :: string` 
 * `result :: string`
 
-### `emitter.onopen = () => { ... }`
+### `emitter.onopen = ({type, target}) => { ... }`
 
-### `emitter.onclose = () => { ... }`
+* `type :: "open"`
+* `target :: antena.Emitter`
 
-### `emitter.onerror = (error) => { ... }`
+### `emitter.onmessage = ({type, target, data}) => { ... }`
 
-* `error :: Error`
+* `type :: "message"`
+* `target :: antena.Emitter`
+* `data :: string`
+
+### `emitter.onclose = ({type, target, wasClean, code, reason}) => { ... }`
+
+* `type :: "close"`
+* `target :: antena.Emitter`
+* `wasClean :: boolean`
+* `code :: number | string`
+* `reason :: string`

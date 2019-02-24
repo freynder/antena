@@ -10,8 +10,6 @@ const server1 = Net.createServer();
 const server2 = Net.createServer();
 const server3 = Http.createServer();
 
-const state = {};
-
 server1.listen("/tmp/antena-test.sock");
 server2.listen(8000);
 server3.listen(8080);
@@ -32,22 +30,10 @@ server3.on("request", (req, res) => {
 });
 server3.on("upgrade", receptor.UpgradeMiddleware("antena-traffic"));
 receptor.onmessage = (session, message) => {
-  receptor.send(session, "message-echo: "+message+" ");
-  if (state[session]) {
-    state[session](message);
-    delete state[session];
-  } else {
-    state[session] = message;
-  }
+  receptor.send(session, message);
 };
 receptor.onrequest = (session, request, callback) => {
-  receptor.send(session, "request-echo: "+request);
-  if (state[session]) {
-    callback(state[session]);
-    delete state[session];
-  } else {
-    state[session] = callback;
-  }
+  callback(request);
 };
 
-Client(receptor, "mock-session");
+Client(receptor, "mock-session", () => {});
