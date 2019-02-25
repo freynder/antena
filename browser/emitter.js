@@ -15,9 +15,18 @@ module.exports = (options = {}, session = Math.random().toString(36).substring(2
 
 function request (query) {
   const request = new XMLHttpRequest();
-  request.open("PUT", this._antena_url, false);
-  request.setRequestHeader("Content-Type", "text/plain;charset=UTF-8");
-  request.send(query);
+  if (query) {
+    request.open("PUT", this._antena_url, false);
+    request.setRequestHeader("User-Agent", "*");
+    request.overrideMimeType("text/plain;charset=UTF-8");
+    request.send(query);
+  } else {
+    request.open("GET", this._antena_url, false);
+    request.setRequestHeader("Cache-Control", "no-cache");
+    request.setRequestHeader("User-Agent", "*");
+    request.overrideMimeType("text/plain;charset=UTF-8");
+    request.send();
+  }
   if (request.status !== 200)
     throw new Error("Unexpected HTTP status code: "+request.status);
   return request.responseText;
