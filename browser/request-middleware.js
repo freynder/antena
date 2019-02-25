@@ -6,6 +6,7 @@ module.exports = function (splitter = "__antena__") {
     let head = Split(request.url, splitter);
     if (!head)
       return (next && next(), false);
+    response.sendDate = false;
     if (request.method === "GET") {
       this.onrequest(head, "", (body) => {
         response.end(body, "utf8")
