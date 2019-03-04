@@ -1,96 +1,81 @@
 
-const CONNECTING = 0;
-const OPEN = 1;
-const CLOSING = 2;
-const CLOSED = 3;
-
-const noop = () => {};
-
-module.exports = (receptor, session) => {
+module.exports = (receptor, session, callback) => {
   const emitter = {
+    __proto__: null,
     _receptor: receptor,
-    _antena_send: _antena_send,
-    readySate: CONNECTING,
-    session: session,
-    onopen: noop,
-    onmessage: noop,
-    onclose: noop,
-    close,
-    request,
-    send,
+    _termcb: null,
+    session,
+    pull,
+    post,
+    onpush,
+    terminate,
+    destroy
   };
-  setTimeout(onopen, 0, emitter);
-  return emitter;
-};
-
-const onopen = (emitter) => {
-  if (emitter.session in emitter._receptor._connections) {
-    if (Array.isArray(emitter._receptor._connections[emitter.session])) {
-      const pendings = emitter._receptor._connections[emitter.session];
-      emitter._receptor._connections[emitter.session] = emitter;
-      emitter.onopen({
-        type: "open",
-        target: emitter
-      });
-      for (let index = 0; index < pendings.length; index++) {
-        emitter.onmessage({data:pendings[index]});
-      }
-    } else {
-      emitter.readyState = CLOSED;
-      emitter.onclose({
-        type: "close",
-        target: emitter,
-        wasClean: false,
-        code: "ALREADY_CONNECTED",
-        reason: "Already connected"
-      });
-    }
+  const connection = {
+    __proto__: null,
+    emitter,
+    push: push0
+  };
+  if (receptor._connect(session, connection)) {
+    callback(null, emitter);
   } else {
-    emitter._receptor._connections[emitter.session] = emitter;
-    emitter.onopen({
-      type: "open",
-      target: emitter
-    });
+    receptor.onerror(session, new Error("Emitter already connected"));
+    callback(new Error("Emitter already connected"));
   }
 };
 
-const onclose = (emitter) => {
-  emitter.readyState = CLOSED;
-  delete emitter._receptor._connections[emitter.session];
-  emitter.onclose({
-    type: "close",
-    target: emitter,
-    wasClean: true,
-    code: 1000,
-    reason: ""
-  });
+function push0 (token) {
+  this.push = push;
 };
 
-function close () {
-  this.readyState = CLOSING;
-  setTimeout(onclose, 0, this);
+function push (message) {
+  setTimeout(pushcb, 0, this.emitter, message);
 }
 
-function request (query) {
+const pushcb = (emitter, message) => {
+  emitter.onpush(message);
+};
+
+const onpush = (message) => {
+  throw new Error("Lost push message: "+message);
+};
+
+function post (message) {
+  if (!this._receptor)
+    throw new Error("Emitter terminated/destroyed");
+  setTimeout(postcb, 0, this._receptor, this.session, message);
+};
+
+const postcb = (receptor, session, message) => {
+  receptor.onpost(session, message);
+};
+
+function pull (message) {
+  if (!this._receptor)
+    throw new Error("Emitter terminated/destroyed");
   let result = null;
   let done = false;
-  this._receptor.onrequest(this.session, query, (argument) => {
+  this._receptor.onpull(this.session, message, (argument) => {
     done = true;
     result = argument;
   });
   if (!done)
-    throw new Error("Receptor did not invoke the callback synchronously");
+    throw new Error("Callback not synchronously called");
   return result;
 }
 
-function send (message) {
-  this._receptor.onmessage(this.session, message);
-}
+function terminate (callback) {
+  if (!this._receptor)
+    return callback(new Error("Emitter already terminated/destroyed"));
+  this._receptor._disconnect(this.session);
+  this._receptor = null;
+  callback(null);
+};
 
-function _antena_send (message) {
-  this.onmessage({
-    type: "message",
-    target: this,
-    data:message
-  });
-}
+function destroy () {
+  if (!this._receptor)
+    return false;
+  this._receptor._disconnect(this.session);
+  this._receptor = null;
+  receptor.onerror(session, new Errro("Emitter destroyed by the user"));
+};

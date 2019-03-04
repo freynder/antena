@@ -10,14 +10,18 @@ const server1 = Net.createServer();
 const server2 = Net.createServer();
 const server3 = Http.createServer();
 
-server1.listen("/tmp/antena-test.sock");
-server2.listen(8000);
-server3.listen(8080);
+server1.listen(process.argv[2]);
+server2.listen(Number(process.argv[3]));
+server3.listen(Number(process.argv[4]));
 
 const receptor = Receptor();
+
 server1.on("connection", receptor.ConnectionListener());
+
 server2.on("connection", receptor.ConnectionListener());
+
 const request_middleware = receptor.RequestMiddleware("antena-traffic");
+
 server3.on("request", (req, res) => {
   if (!request_middleware(req, res)) {
     if (req.url === "/index.html" || req.url === "/client-browser-bundle.js") {
@@ -28,12 +32,23 @@ server3.on("request", (req, res) => {
     }
   }
 });
+
 server3.on("upgrade", receptor.UpgradeMiddleware("antena-traffic"));
-receptor.onmessage = (session, message) => {
-  receptor.send(session, message);
+
+receptor.onerror = (session, error) => {
+  console.log("Error @"+session+": "+error.message);
+  process.exit(1);
 };
-receptor.onrequest = (session, request, callback) => {
-  callback(request);
+
+receptor.onpost = (session, post) => {
+  console.log("onpost", session);
+  console.log("push", session);
+  receptor.push(session, post);
+};
+
+receptor.onpull = (session, pull, callback) => {
+  console.log("onpull", session);
+  callback(pull);
 };
 
 Client(receptor, "mock-session", () => {});

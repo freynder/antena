@@ -4,33 +4,33 @@ Antena is yet an other JavaScript communication library.
 Antena normalises the server-client model for node and browsers.
 In Antena, the server is called receptor and its clients are called emitters.
 Both receptors and emitters can perform push notifications but only emitters can perform synchronous pull requests.
-For node emitters, synchronous pull requests are implemented using [posix-socket](https://www.npmjs.com/package/posix-socket) which is much faster than using the synchronous methods of `child_process` and `fs`.
+For node emitters, synchronous pull requests are implemented using [posix-socket](https://www.npmjs.com/package/posix-socket) which is much faster than using the synchronous methods of `child_process` or `fs`.
 
 ```js
 const AntenaReceptor = require("antena/receptor");
 const receptor = AntenaReceptor();
-receptor.onpush = (session, message) => {
+receptor.onpull = (session, message, callback) => {
   console.assert(session === "antena-rocks");
-  receptor.push(session, message+"World");
+  callback(message+"World");
 };
-receptor.onpull = (session, query, callback) => {
+receptor.onpost = (session, message) => {
   console.assert(session === "antena-rocks");
-  callback(query+"World!!!");
+  receptor.push(session, message+"Bar");
 };
 // For Node Emitters
-const serverN = require("net").createServer(8080);
-const onconnection = receptor.ConnectionListener();
-serverN.on("connection", onconnection);
+const server1 = require("net").createServer(8080);
+const onconnection = receptor.ConnectionListener()
+server1.on("connection", onconnection);
 // For Browser Emitters
-const serverB = require("http").createServer(8000);
-const onrequest = receptor.RequestMiddleware("foobar");
-serverB.on("request", (request, response) => {
+const server2 = require("http").createServer(8000);
+const onrequest = receptor.RequestMiddleware("_ANTENA_");
+server2.on("request", (request, response) => {
   onrequest(request, response, () => {
     // Request not handled by antena
   });
 });
-const onupgrade = receptor.UpgradeMiddleware("foobar");
-serverB.on("upgrade", (request, socket, head) => {
+const onupgrade = receptor.UpgradeMiddleware("_ANTENA_");
+server2.on("upgrade", (request, socket, head) => {
   onupgrade(request, response, () => {
     // Upgrade not handled by Antena
   });
@@ -39,14 +39,27 @@ serverB.on("upgrade", (request, socket, head) => {
 
 ```js
 const AntenaEmitter = require("antena/emitter");
-const session = "antena-rocks";
-const emitter = AntenaEmitter(8080, session); // Node Emitter
-const emitter = AntenaBrowser("foobar", session); // Browser Emitter
-emitter.push("Hello");
-emitter.onpush = (message) => {
-  console.log(message); // prints HelloWorld
+const callback = (error, emitter) => {
+  if (error)
+    throw error;
+  console.assert(emitter.pull("Hello") === "HelloWorld");
+  emitter.push("Foo");
+  emitter.onpush = (message) => {
+    console.assert(messsage === "FooBar");
+    emitter.terminate((error) => {
+      if (error) {
+        emitter.destroy();
+        throw error;
+      }
+    });
+  };
 };
-console.log(emitter.pull("Hello")); // prints HelloWorld!!!
+// Mock Emitter
+AntenaEmitter(receptor, "antena-rocks", callback);
+// Node Emitter
+AntenaEmitter(8080, "antena-rocks", callback);
+// Browser Emitter
+AntenaEmitter("_ANTENA_", "antena-rocks", callback);
 ```
 
 ## Receptor
@@ -57,7 +70,7 @@ Create a new receptor.
 
 * `receptor :: antena.Receptor`
 
-### `receptor.send(session, message)`
+### `receptor.push(session, message)`
 
 Push a message to an emitter identified by its session.
 
@@ -69,22 +82,22 @@ Push a message to an emitter identified by its session.
 * `session :: string`
 * `error :: Error`
 
-### `receptor.onmessage = (session, message) => { ... }`
+### `receptor.onpost = (session, message) => { ... }`
 
-Handler for `emitter.send(message)`.
+Handler for `emitter.post(message)`.
 
 * `session :: string`
 * `message :: string`
 
-### `receptor.onrequest = (session, query, callback) => { ... }`
+### `receptor.onpull = (session, message, callback) => { ... }`
 
-Handler for `emitter.request(message)`.
+Handler for `emitter.pull(message)`.
 
 * `receptor :: antena.Receptor`
 * `session :: string`
-* `query :: string`
-* `callback(result)`
-  * `result :: String`
+* `message :: string`
+* `callback(message)`
+  * `message :: String`
 
 ### `onconnection = receptor.ConnectionListener()`
 
@@ -156,34 +169,30 @@ An emitter is essentially a WebSocket with a mean to perform synchronous request
 
 ### `emitter.session :: string`
 
-### `emitter.readyState :: number`
+### `emitter.terminate(callback)`
 
-### `emitter.close = () => { ... }`
+Attempt to perform a graceful shutdown, the emitter must still be destroyed on failure.
 
-### `emitter.send(message)`
+* `callback(error)`
+  * `error :: Error`
+
+### `emitter.destroy()`
+
+Immediately destroy the emitter, messages might be lost.
+
+### `emitter.post(message)`
+
+Immediately send a message to the receptor, may throw an error.
 
 * `message :: string`
 
-### `result = emitter.request(query)`
+### `result = emitter.pull(query)`
+
+Perform a synchronous request to the receptor, may throw an error.
 
 * `query :: string` 
 * `result :: string`
 
-### `emitter.onopen = ({type, target}) => { ... }`
+### `emitter.onpush = (message) => { ... }`
 
-* `type :: "open"`
-* `target :: antena.Emitter`
-
-### `emitter.onmessage = ({type, target, data}) => { ... }`
-
-* `type :: "message"`
-* `target :: antena.Emitter`
-* `data :: string`
-
-### `emitter.onclose = ({type, target, wasClean, code, reason}) => { ... }`
-
-* `type :: "close"`
-* `target :: antena.Emitter`
-* `wasClean :: boolean`
-* `code :: number | string`
-* `reason :: string`
+* `message :: string`

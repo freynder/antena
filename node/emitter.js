@@ -3,14 +3,61 @@ const Net = require("net");
 const PosixSocket = require("posix-socket");
 const Messaging = require("./messaging.js");
 
-const CONNECTING = 0;
-const OPEN = 1;
-const CLOSING = 2;
-const CLOSED = 3;
-
-const signal = (error) => { throw error };
+let BUFFER = Buffer.from(new ArrayBuffer(1024));
 
 const noop = () => {};
+
+module.exports = (address, session, callback) => {
+  address = convert(address);
+  let sockfd;
+  const socket = Net.connect(address.net);
+  const cleanup = (error) => {
+    try { PosixSocket.close(sockfd) } catch (error) {}
+    socket.removeAllListeners("error");
+    socket.removeAllListeners("connect");
+    socket.removeAllListeners("data");
+    socket._antena_receive = noop;
+    socket.destroy();
+    callback(error);
+  };
+  socket.once("error", cleanup);
+  socket.once("connect", () => {
+    Messaging(socket);
+    socket._antena_send("@"+session);
+    socket._antena_receive = (token) => {
+      try {
+        sockfd = PosixSocket.socket(address.domain, PosixSocket.SOCK_STREAM, 0);
+        if (address.domain !== PosixSocket.AF_LOCAL)
+          PosixSocket.setsockopt(sockfd, PosixSocket.IPPROTO_TCP, PosixSocket.TCP_NODELAY, 1);
+        PosixSocket.connect(sockfd, address.posix);
+        output(sockfd, "$"+token);
+      } catch (error) {
+        return cleanup(error);
+      }
+      const emitter = {
+        _sockfd: sockfd,
+        _socket: socket,
+        _termcb: null,
+        onpush,
+        session,
+        terminate,
+        destroy,
+        post,
+        pull
+      };
+      socket._antena_emitter = emitter;
+      socket._antena_receive = receive;
+      socket.removeAllListeners("error");
+      socket.on("error", onerror);
+      socket.on("close", onclose);
+      callback(null, emitter);
+    };
+  });
+};
+
+////////////
+// Helper //
+////////////
 
 const convert = (address) => {
   if (typeof address === "number" || /^[0-9]+$/.test(address))
@@ -61,149 +108,102 @@ const convert = (address) => {
   };
 };
 
-let BUFFER, VIEW;
+const output = (sockfd, message) => {
+  let bytelength = BUFFER.write(message, 4, "utf8") + 4;
+  if (bytelength > BUFFER.length - 8) {
+    bytelength = Buffer.byteLength(message, "utf8") + 4;
+    BUFFER = Buffer.from(new ArrayBuffer(bytelength + 8));
+    BUFFER.write(message, 4, "utf8");
+  }
+  BUFFER.writeUInt32LE(bytelength, 0);
+  if (PosixSocket.send(sockfd, BUFFER.buffer, bytelength, 0) < bytelength) {
+    throw new Error("Could not send the entire message ("+bytelength+" bytes)");
+  }
+};
 
-const initialize = (length) => {
-  BUFFER = new ArrayBuffer(length);
-  VIEW = new DataView(BUFFER);
+//////////////////////////
+// net.Socket Callbacks //
+//////////////////////////
+
+function receive (message) {
+  this._antena_emitter.onpush(message);
 }
 
-initialize(1024);
-
-const output = (sockfd, message) => {
-  const bytelength = 2 * message.length + 4;
-  if (bytelength > BUFFER.byteLength)
-    initialize(bytelength);
-  VIEW.setUint32(0, bytelength, true);
-  for (let index = 0, offset = 4, length = message.length; index < length; (index++, offset += 2))
-    VIEW.setUint16(offset, message.charCodeAt(index), true);
-  PosixSocket.send(sockfd, BUFFER, bytelength, 0);
-};
-
-module.exports = (address, session) => {
-  address = convert(address);
-  const sockfd = PosixSocket.socket(address.domain, PosixSocket.SOCK_STREAM, 0);
-  PosixSocket.connect(sockfd, address.posix);
-  if (address.domain !== PosixSocket.AF_LOCAL)
-    PosixSocket.setsockopt(sockfd, PosixSocket.IPPROTO_TCP, PosixSocket.TCP_NODELAY, 1);
-  output(sockfd, "?"+session);
-  const socket = Net.connect(address.net);
-  const emitter = {
-    _sockfd: sockfd,
-    _socket: socket,
-    readyState: CONNECTING,
-    session,
-    close,
-    send,
-    request,
-    onopen: noop,
-    onmessage: noop,
-    onclose: noop
-  };
-  Messaging(socket);
-  socket._antena_emitter = emitter;
-  socket._antena_receive = receive;
-  socket.on("connect", onconnect);
-  socket.on("error", onerror);
-  socket.on("end", onend);
-  socket.on("close", onclose);
-  return emitter;
-};
-
-function onconnect () {
-  this._antena_send("!"+this._antena_emitter.session);
-  this._antena_emitter.readyState = OPEN;
-  this._antena_emitter.onopen({
-    type: "open",
-    target: this._antena_emitter
-  });
+function onclose () {
+  if (this._antena_emitter._termcb) {
+    const callback = this._antena_emitter._termcb;
+    this._antena_emitter._termcb = null;
+    try {
+      PosixSocket.close(this._antena_emitter._sockfd);
+    } catch (error) {
+      return callback(error);
+    }
+    this._antena_emitter._sockfd = null;
+    callback(null);
+  }
 }
 
 function onerror (error) {
-  this.removeAllListeners("error");
-  this.destroy();
-  if (this._antena_emitter.readyState !== CLOSED) {
-    this._antena_emitter.readyState = CLOSED;
-    this._antena_emitter.onclose({
-      type: "close",
-      target: this._antena_emitter,
-      wasClean: false,
-      code: error.errno,
-      reason: error.message
-    });
+  if (this._antena_emitter._termcb) {
+    const callback = this.antena_emitter._termcb;
+    this.antena_emitter._termcb = null;
+    callback(error);
   }
 }
 
-function onend () {
-  const state = this._antena_emitter.readyState;
-  if (state !== CLOSED) {
-    this._antena_emitter.readyState = CLOSED;
-    if (state === CLOSING) {
-      this._antena_emitter.onclose({
-        type: "close",
-        target: this._antena_emitter,
-        wasClean: true,
-        code: 1000,
-        reason: "Normal Closure"
-      });
-    } else {
-      this._antena_emitter.onclose({
-        type: "close",
-        target: this._antena_emitter,
-        wasClean: false,
-        code: 1001,
-        reason: "Going Away"
-      });
-    }
-  }
+////////////////////
+// Emitter Method //
+////////////////////
+
+const onpush = (message) => {
+  throw new Error("Lost push message: "+message);
 };
 
-function onclose () {
-  if (this._antena_emitter.readyState !== CLOSED) {
-    throw new Error("This should never happen: either the connection is closed cleanly with end or it had an error");
+function destroy () {
+  if (!this._sockfd)
+    return false;
+  this._socket.removeAllListeners("error");
+  this._socket.removeAllListeners("close");
+  this._socket.removeAllListeners("data");
+  this._socket.destroy();
+  try { PosixSocket.close(this._sockfd) } catch (error) {}
+  this._sockfd = null;
+  if (this._termcb) {
+    const callback = this._termcb;
+    this._termcb = null;
+    callback(new Error("Emitter destroyed by the used"));
   }
-}
+  return true;
+};
 
-function receive (string) {
-  this._antena_emitter.onmessage({
-    type: "message",
-    target: this._antena_emitter,
-    data: string
-  });
-}
-
-function close () {
-  if (this.readyState !== CLOSING && this.readyState !== CLOSED) {
-    this.readyState = CLOSING;
-    this._socket.end();
-    setTimeout(() => {
-      if (this.readyState !== CLOSED) {
-        this._socket.destroy();
-        this.readyState === CLOSED;
-        this.onclose({
-          type: "close",
-          target: this,
-          wasClean: false,
-          code: 1002,
-          reason: "Closing handshake timeout"
-        });
-      }
-    }, 30 * 1000);
+function terminate (callback) {
+  if (this._termcb)
+    return callback(new Error("Terminate is already pending"));
+  if (!this._sockfd)
+    return callback(new Error("Emitter terminated/destroyed"));
+  try {
+    PosixSocket.shutdown(this._sockfd, PosixSocket.SHUT_WR);
+    if (PosixSocket.recv(this._sockfd, BUFFER.buffer, 1, 0) !== 0) {
+      throw new Error("Received some data instead of a FIN packet");
+    }
+  } catch (error) {
+    return callback(error);
   }
+  this._termcb = callback;
 }
 
-function send (string) {
-  if (this.readyState !== OPEN)
-    throw new Error("InvalidStateError: the connection is not open");
-  this._socket._antena_send(string);
+function post (message) {
+  output(this._sockfd, "!"+message);
 }
 
-function request (string) {
-  output(this._sockfd, string);
-  PosixSocket.recv(this._sockfd, BUFFER, 4, PosixSocket.MSG_WAITALL);
-  const bytelength = VIEW.getUint32(0, true) - 4;
+function pull (string) {
+  output(this._sockfd, "?" + string);
+  if (PosixSocket.recv(this._sockfd, BUFFER.buffer, 4, PosixSocket.MSG_WAITALL) < 4)
+    throw new Error("Could not recv the head of the pull response (4 bytes)");
+  const bytelength = BUFFER.readUInt32LE(0) - 4;
   if (bytelength > BUFFER.byteLength)
-    initialize(bytelength);
-  PosixSocket.recv(this._sockfd, BUFFER, bytelength, PosixSocket.MSG_WAITALL);
-  return Buffer.from(BUFFER, 0, bytelength).toString("utf16le");
+    BUFFER = Buffer.from(new ArrayBuffer(bytelength));
+  if (PosixSocket.recv(this._sockfd, BUFFER.buffer, bytelength, PosixSocket.MSG_WAITALL) < bytelength)
+    throw new Error("Could not recv the body of the pull response ("+bytelength+" bytes)");
+  return BUFFER.toString("utf8", 0, bytelength);
 }

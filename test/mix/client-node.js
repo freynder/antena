@@ -1,4 +1,6 @@
 const Client = require("./client.js");
-Client(process.argv[2], "node-session-"+String(process.argv[2]), () => {
+Client(process.argv[2], "node-session-"+String(process.argv[2]), (error) => {
+  if (error)
+    throw error;
   process.exit(0);
 });

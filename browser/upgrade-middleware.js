@@ -5,37 +5,42 @@ const Split = require("./split.js");
 module.exports = function (splitter = "__antena__") {
   const wss = new Ws.Server({noServer:true});
   return (request, socket, head, next) => {
-    let session = Split(request.url, splitter);
-    if (!session)
-      return (next && next(), false);
-    wss.handleUpgrade(request, socket, head, (websocket) => {
-      if (session in this._connections) {
-        if (!Array.isArray(this._connections[session]))
-          return websocket.close(1002, "already-connected");
-        for (let index = 0; index < this._connections[session].length; index++) {
-          websocket.send(this._connections[session][index]);
+    const session = Split(request.url, splitter);
+    if (session) {
+      wss.handleUpgrade(request, socket, head, (websocket) => {
+        const connection = {
+          __proto__: null,
+          push,
+          websocket
+        };
+        if (this._connect(session, connection)) {
+          websocket._antena_session = session;
+          websocket._antena_receptor = this;
+          websocket.on("close", onclose);
+          websocket.on("message", onmessage);
+        } else {
+          websocket.close(1002, "Already Connected");
+          this.onerror(session, new Error("Websocket already connected"));
         }
-      }
-      this._connections[session] = websocket;
-      websocket._antena_send = websocket.send;
-      websocket._antena_session = session;
-      websocket._antena_receptor = this;
-      websocket.on("close", onclose);
-      websocket.on("message", onmessage);
-      websocket.on("error", onerror);
-    });
-    return true;
+      });
+    } else if (next) {
+      next();
+    }
+    return Boolean(session);
   };
 };
 
-function onerror (error) {
-  this._antena_receptor.onerror(this._antena_session, error);
+function push (message) {
+  this.websocket.send(message);
 }
 
 function onclose (code, reason) {
-  delete this._antena_receptor._connections[this._antena_session];
+  this._antena_receptor._disconnect(this._antena_session);
+  if (code !== 1000) {
+    this._antena_receptor.onerror(new Error("Websocket abnormal closure: "+code+" "+reason));
+  }
 }
 
 function onmessage (message) {
-  this._antena_receptor.onmessage(this._antena_session, message);
+  this._antena_receptor.onpost(this._antena_session, message);
 }

@@ -1,6 +1,6 @@
 browserify client-browser.js > client-browser-bundle.js
 rm /tmp/antena-test.sock
-node server.js &
+node server.js /tmp/antena-test.sock 8000 8080 &
 sleep 1
 node client-node.js /tmp/antena-test.sock
 node client-node.js 8000
