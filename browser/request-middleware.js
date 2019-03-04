@@ -45,7 +45,7 @@ function ondata (data) {
 }
 
 function onend () {
-  this._antena_receptor.onpull(this._antana_session, this._antena_message, (message) => {
+  this._antena_receptor.onpull(this._antena_session, this._antena_message, (message) => {
     this._antena_response.end(message, "utf8");
   });
 }
