@@ -1,4 +1,4 @@
-const Emitter = require("../../emitter.js");
+const Emitter = require("../../lib/emitter.js");
 const session = "overflow";
 Emitter(process.argv[process.argv.length - 1], session, (error, emitter) => {
   if (error)

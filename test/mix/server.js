@@ -4,7 +4,7 @@ const Net = require("net");
 const Http = require("http");
 const Path = require("path");
 const Client = require("./client.js");
-const Receptor = require("../../receptor.js");
+const Receptor = require("../../lib/receptor.js");
 
 const server1 = Net.createServer();
 const server2 = Net.createServer();
@@ -16,39 +16,65 @@ server3.listen(Number(process.argv[4]));
 
 const receptor = Receptor();
 
+receptor.onpost = (session, message) => {
+  receptor.push(session, message + message);
+};
+
+receptor.onpull = (session, message, callback) => {
+  callback(message + message);
+};
+
+Client(receptor, "mock-session", (error) => {
+  if (error) {
+    throw error;
+  }
+});
+
 server1.on("connection", receptor.ConnectionListener());
 
 server2.on("connection", receptor.ConnectionListener());
 
-const request_middleware = receptor.RequestMiddleware("antena-traffic");
+const sockets = new Set();
 
-server3.on("request", (req, res) => {
-  if (!request_middleware(req, res)) {
-    if (req.url === "/index.html" || req.url === "/client-browser-bundle.js") {
-      Fs.createReadStream(Path.join(__dirname, req.url)).pipe(res);
+const request_middleware = receptor.RequestMiddleware("antena-traffic");
+server3.on("request", (request, response) => {
+  sockets.add(request.socket);
+  sockets.add(response.socket);
+  if (!request_middleware(request, response)) {
+    if (request.url === "/index.html" || request.url === "/client-browser-bundle.js") {
+      Fs.createReadStream(Path.join(__dirname, request.url)).pipe(response);
     } else {
-      res.writeHead(404);
-      res.end();
+      response.writeHead(404);
+      response.end();
     }
   }
 });
 
-server3.on("upgrade", receptor.UpgradeMiddleware("antena-traffic"));
+const upgrade_middleware = receptor.UpgradeMiddleware("antena-traffic");
+server3.on("upgrade", (request, socket, head) => {
+  sockets.add(socket);
+  if (!upgrade_middleware(request, socket, head)) {
+    throw new Error("Upgrade request not handled");
+  }
+});
 
-receptor.onerror = (session, error) => {
-  console.log("Error @"+session+": "+error.message);
-  process.exit(1);
-};
+setTimeout(() => {
+  server1.close(() => {
+    console.log("server1 closed");
+  });
+  server2.close(() => {
+    console.log("server2 closed");
+  });
+  server3.close(() => {
+    console.log("server3 closed");
+  });
+  sockets.forEach((socket) => {
+    if (!socket.destroyed) {
+      socket.destroy();
+    }
+  });
+}, 4000);
 
-receptor.onpost = (session, post) => {
-  console.log("onpost", session);
-  console.log("push", session);
-  receptor.push(session, post);
-};
-
-receptor.onpull = (session, pull, callback) => {
-  console.log("onpull", session);
-  callback(pull);
-};
-
-Client(receptor, "mock-session", () => {});
+process.on("exit", () => {
+  console.log("process exit");
+});

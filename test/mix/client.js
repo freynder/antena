@@ -1,22 +1,20 @@
 
-const Emitter = require("../../emitter.js")
+const Emitter = require("../../lib/emitter.js")
 
 module.exports = (address, session, callback) => {
+  console.log(session+"...");
   Emitter(address, session, (error, emitter) => {
     if (error)
       return callback(error);
-    let input = "";
+    emitter.then(callback, callback);
     emitter.onpush = (message) => {
-      if (message !== "bar")
-        throw new Error("Expected 'bar', got: "+JSON.stringify(event));
-      console.log("onpush", session);
-      emitter.terminate(callback);
+      console.assert(message === "barbar", "Wrong post -> push");
+      emitter.terminate();
     };
-    const result = emitter.pull("foo");
-    if (result !== "foo")
-      throw new Error("Expected 'foo', got: "+result);
-    console.log("pull", session);
+    emitter.onterminate = () => {
+      console.assert(emitter.pull("qux") === "quxqux", "Wrong termination pull");
+    };
+    console.assert(emitter.pull("foo") === "foofoo", "Wrong pull");
     emitter.post("bar");
-    console.log("post", session);
   });
 };

@@ -7,7 +7,7 @@ Both receptors and emitters can perform push notifications but only emitters can
 For node emitters, synchronous pull requests are implemented using [posix-socket](https://www.npmjs.com/package/posix-socket) which is much faster than using the synchronous methods of `child_process` or `fs`.
 
 ```js
-const AntenaReceptor = require("antena/receptor");
+const AntenaReceptor = require("antena/lib/receptor");
 const receptor = AntenaReceptor();
 receptor.onpull = (session, message, callback) => {
   console.assert(session === "antena-rocks");
@@ -17,6 +17,9 @@ receptor.onpost = (session, message) => {
   console.assert(session === "antena-rocks");
   receptor.push(session, message+"Bar");
 };
+receptor.terminate = (session, (error) => {
+  // Politely 
+});
 // For Node Emitters
 const server1 = require("net").createServer(8080);
 const onconnection = receptor.ConnectionListener()
@@ -38,20 +41,28 @@ server2.on("upgrade", (request, socket, head) => {
 ```
 
 ```js
-const AntenaEmitter = require("antena/emitter");
+const AntenaEmitter = require("antena/lib/emitter");
 const callback = (error, emitter) => {
   if (error)
     throw error;
+  emitter.then(() => {
+    // The emitter closed normally.
+    // The emitter can no longer be used.
+  }, (error) => {
+    // An (a)synchronous error occurred.
+    // The emitter can no longer be used.
+  });
   console.assert(emitter.pull("Hello") === "HelloWorld");
   emitter.push("Foo");
   emitter.onpush = (message) => {
     console.assert(messsage === "FooBar");
-    emitter.terminate((error) => {
-      if (error) {
-        emitter.destroy();
-        throw error;
-      }
-    });
+    emitter.terminate();
+    // Emitter is still fully usable after calling terminate.
+  };
+  emitter.onterminate = () => {
+    // Emitter will no longer receive push events.
+    // Post an pull can still be performed in this callback.
+    // After returning, the emitter will be resolved. 
   };
 };
 // Mock Emitter
@@ -77,7 +88,9 @@ Push a message to an emitter identified by its session.
 * `session :: string`
 * `message :: string`
 
-### `receptor.onerror = (session, error) => { ... }`
+### `receptor.terminate(session, (error) => { ... })`
+
+Attempt to gracefully close a connection.
 
 * `session :: string`
 * `error :: Error`
@@ -138,11 +151,9 @@ Create a middleware for the `upgrade` event of a `http(s).Server`.
   * `handled :: boolean`
     Indicate whether the upgrade request was handled by Antena.
 
-### `receptor.terminate(() => { ... })`
-
 ## Emitter
 
-An emitter is essentially a WebSocket with a mean to perform synchronous requests.
+Emitter are [promises](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise) which represents the lifetime of the connection.
 
 ### `emitter = require("antena/emitter")(address, session)`
 
@@ -171,9 +182,9 @@ An emitter is essentially a WebSocket with a mean to perform synchronous request
 
 ### `emitter.session :: string`
 
-### `emitter.terminate(callback)`
+### `emitter.terminate()`
 
-Attempt to perform a graceful shutdown, the emitter must still be destroyed on failure.
+Attempt to perform a graceful shutdown, the emitter is still fully usable.
 
 * `callback(error)`
   * `error :: Error`

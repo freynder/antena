@@ -1,6 +1,6 @@
 
 const Net = require("net");
-const Receptor = require("../../receptor.js");
+const Receptor = require("../../lib/receptor.js");
 
 const server = Net.createServer();
 server.listen(process.argv[process.argv.length - 1]);
@@ -22,3 +22,10 @@ receptor.onpost = (session, message) => {
   console.log("push", session);
   receptor.push(session, "d".repeat(100000));
 };
+
+setTimeout(() => {
+  server.close();
+}, 1000);
+process.on("exit", () => {
+  console.log("exit");
+});
