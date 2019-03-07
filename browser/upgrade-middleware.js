@@ -34,6 +34,11 @@ function push (message) {
   this.websocket.send(message);
 }
 
+function terminate () {
+  this.websocket.close(1000, "Server-side closure");
+  this._antena_receptor._disconnect(this._antena_session);
+}
+
 function onclose (code, reason) {
   this._antena_receptor._disconnect(this._antena_session);
   if (code !== 1000) {

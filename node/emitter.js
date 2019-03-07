@@ -37,8 +37,9 @@ module.exports = (address, session, callback) => {
       const emitter = {
         _sockfd: sockfd,
         _socket: socket,
-        _termcb: null,
         onpush,
+        onterminate,
+        onclose,
         session,
         terminate,
         destroy,
@@ -47,7 +48,8 @@ module.exports = (address, session, callback) => {
       };
       socket._antena_emitter = emitter;
       socket._antena_receive = receive;
-      socket.removeAllListeners("error");
+      socket._antena_error = null;
+      socket.removeListener("error", cleanup);
       socket.on("error", onerror);
       socket.on("close", onclose);
       callback(null, emitter);
@@ -109,6 +111,8 @@ const convert = (address) => {
 };
 
 const output = (sockfd, message) => {
+  if (!sockfd)
+    throw new Error("Emitter closed");
   let bytelength = BUFFER.write(message, 4, "utf8") + 4;
   if (bytelength > BUFFER.length - 8) {
     bytelength = Buffer.byteLength(message, "utf8") + 4;
@@ -130,25 +134,26 @@ function receive (message) {
 }
 
 function onclose () {
-  if (this._antena_emitter._termcb) {
-    const callback = this._antena_emitter._termcb;
-    this._antena_emitter._termcb = null;
+  if (this._antena_error) {
+    try { PosixSocket.close(this._antena_emitter._sockfd) } catch (error) {}
+  } else {
+    this._antena_emitter.onterminate();
     try {
+      output(this._sockfd, ".");
+      PosixSocket.shutdown(this._sockfd, PosixSocket.SHUT_WR);
+      if (PosixSocket.recv(this._sockfd, BUFFER.buffer, 1, 0) !== 0)
+        throw new Error("Received some data instead of a FIN packet");
       PosixSocket.close(this._antena_emitter._sockfd);
     } catch (error) {
-      return callback(error);
+      this._antena_error = error;
     }
-    this._antena_emitter._sockfd = null;
-    callback(null);
   }
+  this._antena_emitter._sockfd = null;
+  this._antena_emitter.onclose(this._antena_error);
 }
 
 function onerror (error) {
-  if (this._antena_emitter._termcb) {
-    const callback = this.antena_emitter._termcb;
-    this.antena_emitter._termcb = null;
-    callback(error);
-  }
+  this._antena_error = this._antena_error || error;
 }
 
 ////////////////////
@@ -168,28 +173,15 @@ function destroy () {
   this._socket.destroy();
   try { PosixSocket.close(this._sockfd) } catch (error) {}
   this._sockfd = null;
-  if (this._termcb) {
-    const callback = this._termcb;
-    this._termcb = null;
-    callback(new Error("Emitter destroyed by the used"));
-  }
+  this.onclose(new Error("Emitter destroyed by the user"));
   return true;
-};
+}
 
-function terminate (callback) {
-  if (this._termcb)
-    return callback(new Error("Terminate is already pending"));
-  if (!this._sockfd)
-    return callback(new Error("Emitter terminated/destroyed"));
-  try {
-    PosixSocket.shutdown(this._sockfd, PosixSocket.SHUT_WR);
-    if (PosixSocket.recv(this._sockfd, BUFFER.buffer, 1, 0) !== 0) {
-      throw new Error("Received some data instead of a FIN packet");
-    }
-  } catch (error) {
-    return callback(error);
-  }
-  this._termcb = callback;
+function terminate () {
+  if (!this.writable)
+    return false;
+  this._socket.end();
+  return true;
 }
 
 function post (message) {

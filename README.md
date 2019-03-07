@@ -138,6 +138,8 @@ Create a middleware for the `upgrade` event of a `http(s).Server`.
   * `handled :: boolean`
     Indicate whether the upgrade request was handled by Antena.
 
+### `receptor.terminate(() => { ... })`
+
 ## Emitter
 
 An emitter is essentially a WebSocket with a mean to perform synchronous requests.

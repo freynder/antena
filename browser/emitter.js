@@ -16,93 +16,115 @@ module.exports = (options = {}, session, callback) => {
     callback(new Error("Websocket closed: "+event.code+" "+event.reason));
   };
   websocket.onmessage = ({data:token}) => {
+    const emitter = {
+      _websocket: websocket,
+      _url1: "http"+secure+"://"+hostname+port+"/"+splitter+"/"+token,
+      _url2: null,
+      destroy,
+      terminate,
+      post,
+      pull,
+      onterminate,
+      onfinish,
+      onpush,
+    };
+    websocket._antena_emitter = emitter;
     websocket.onclose = onclose;
     websocket.onmessage = onmessage;
-    websocket._url = "http"+secure+"://"+hostname+port+"/"+splitter+"/"+token;
-    websocket._termcb = null;
-    websocket.session = session;
-    websocket.terminate = terminate;
-    websocket.destroy = destroy;
-    websocket.onpush = onpush;
-    websocket.onclose = onclose;
-    websocket.pull = pull;
-    websocket.post = WebSocket.prototype.send;
     callback(null, websocket);
   };
 };
 
-//////////////////////////
-// WebSocket Listerners //
-//////////////////////////
+///////////////
+// WebSocket //
+///////////////
 
 function onmessage ({data}) {
-  this.onpush(data);
+  this._antena_emitter.onpush(data);
 }
 
-const onpush = (message) => {
-  throw new Error("Lost a push message: "+message);
-};
-
 function onclose (event) {
-  if (this._termcb) {
-    const callback = this._termcb;
-    this._termcb = null;
-    if (event.wasClean) {
-      if (event.code === 1000) {
-        this._url = null;
-        callback(null);
-      } else {
-        callback(new Error("Abnormal websocket closure: "+event.code+" "+event.reason));
-      }
-    } else {
-      callback(new Error("Unclean websocket closure"));
-    }
+  const error = null;
+  if (!event.wasClean) {
+    error = new Error("Unclean websocket closure");
+  } else if (event.code !== 1000) {
+    new Error("Abnormal websocket closure: "+event.code+" "+event.reason)
   }
+  if (!error) {
+    if (!this._antena_emitter._url2)
+      this._antena_emitter._url2 = this._antena_emitter._url1 + ".";
+    this._antena_emitter.onterminate();
+  }
+  this._antena_emitter._url1 = null;
+  this._antena_emitter.onfinish(error);
 }
 
 ////////////////////
 // Emitter Method //
 ////////////////////
 
-function terminate (callback) {
-  if (this._termcb)
-    return callback(new Error("Terminate is already pending"));
-  if (!this._url)
-    return callback(new Error("Emitter already terminated/destroyed"));
-  this.close(1000, "Normal Closure");
-  this._termcb = callback;
+const onpush = (message) => {
+  throw new Error("Lost a push message: "+message);
+};
+
+const onfinish = (error) => {
+  if (error) {
+    throw error
+  }
+}
+
+const onterminate = () => {};
+
+function post (message) {
+  if (!this._url1)
+    throw new Error("Emitter closed");
+  if (!this._url2)
+    return this._websocket.send(message);
+  const request = new XMLHttpRequest();
+  if (message) {
+    request.open("PUT", this._url2, true);
+  } else {
+    request.open("GET", this._url2, true);
+    request.setRequestHeader("Cache-Control", "no-cache");
+  }
+  request.setRequestHeader("User-Agent", "*");
+  request.send(message);
+}
+
+function terminate () {
+  if (this._websocket.readyState !== OPEN)
+    return false;
+  this._url2 = this._url1 + ".";
+  this._websocket.close(1000, "Client-side closure");
+  return true;
 }
 
 function destroy () {
-  if (!this._url)
+  if (!this._url1)
     return false;
-  this.onmessage = null;
-  this.onclose = null;
-  this._url = null;
-  if (this.readyState !== CLOSING)
-    this.close(1001, "Destroyed");
-  if (this._termcb) {
-    const callback = this._termcb;
-    this._termcb = null;
-    callback(new Error("Emitter destroyed by the user"));
-  }
+  this._websocket.onmessage = null;
+  this._websocket.onclose = null;
+  this._url1 = null;
+  if (this._websocket.readyState !== CLOSING)
+    this._websocket.close(1001, "Destroyed");
+  this.onfinish(new Error("Destroyed by the user"));
   return true;
 }
 
 function pull (message) {
-  if (!this._url)
-    throw new Error("Emitter terminated/destroyed");
+  if (!this._url1)
+    throw new Error("Emitter closed");
   const request = new XMLHttpRequest();
   if (message) {
-    request.open("PUT", this._url, false);
+    request.open("PUT", this._url1, false);
   } else {
-    request.open("GET", this._url, false);
+    request.open("GET", this._url1, false);
     request.setRequestHeader("Cache-Control", "no-cache");
   }
   request.setRequestHeader("User-Agent", "*");
   request.overrideMimeType("text/plain;charset=UTF-8");
   request.send(message);
   if (request.status !== 200)
-    throw new Error(request.status+" "+request.statusText);
+    throw new Error("HTTP Error: "+request.status+" "+request.statusText);
   return request.responseText;
 }

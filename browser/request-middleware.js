@@ -3,8 +3,11 @@ const Split = require("./split.js");
 
 module.exports = function (splitter = "__antena__") {
   return (request, response, next) => {
-    const token = Split(request.url, splitter);
+    let token = Split(request.url, splitter);
     if (token) {
+      const post = token[token.length-1] === ".";
+      if (post)
+        token = token.substring(0, token.length-1);
       const session = this._sessions[token];
       response.sendDate = false;
       response._antena_session = session;
@@ -12,10 +15,15 @@ module.exports = function (splitter = "__antena__") {
       response.on("error", onerror);
       if (session) {
         if (request.method === "GET") {
-          this.onpull(session, "", (message) => {
-            response.end(message, "utf8");
-          });
+          if (post) {
+            this.onpost(session, "");
+          } else {
+            this.onpull(session, "", (message) => {
+              response.end(message, "utf8");
+            });
+          }
         } else {
+          request._antena_post = post;
           request._antena_session = session;
           request._antena_message = "";
           request._antena_receptor = this;
@@ -45,7 +53,11 @@ function ondata (data) {
 }
 
 function onend () {
-  this._antena_receptor.onpull(this._antena_session, this._antena_message, (message) => {
-    this._antena_response.end(message, "utf8");
-  });
+  if (this._antena_post) {
+    this._antena_receptor.onpost(this._antena_session, this._antena_message);
+  } else {
+    this._antena_receptor.onpull(this._antena_session, this._antena_message, (message) => {
+      this._antena_response.end(message, "utf8");
+    });
+  }
 }
