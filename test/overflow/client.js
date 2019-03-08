@@ -3,6 +3,7 @@ const session = "overflow";
 Emitter(process.argv[process.argv.length - 1], session, (error, emitter) => {
   if (error)
     throw error;
+  emitter.then(() => {}, (error) => { throw error });
   console.log("pull", session);
   const response = emitter.pull("a".repeat(100000));
   if (response !== "b".repeat(100000))
@@ -13,6 +14,6 @@ Emitter(process.argv[process.argv.length - 1], session, (error, emitter) => {
     console.log("onpush", session);
     if (message !== "d".repeat(100000))
       throw new Error("Push mismatch");
-    process.exit(0);
+    emitter.terminate(0);
   };
 });

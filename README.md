@@ -88,13 +88,6 @@ Push a message to an emitter identified by its session.
 * `session :: string`
 * `message :: string`
 
-### `receptor.terminate(session, (error) => { ... })`
-
-Attempt to gracefully close a connection.
-
-* `session :: string`
-* `error :: Error`
-
 ### `receptor.onpost = (session, message) => { ... }`
 
 Handler for `emitter.post(message)`.
