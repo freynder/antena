@@ -25,9 +25,9 @@ receptor.onpull = (session, message, callback) => {
 };
 
 Client(receptor, "mock-session", (error) => {
-  if (error) {
+  if (error)
     throw error;
-  }
+  console.log("ok");
 });
 
 server1.on("connection", receptor.ConnectionListener());
