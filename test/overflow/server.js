@@ -23,9 +23,4 @@ receptor.onpost = (session, message) => {
   receptor.push(session, "d".repeat(100000));
 };
 
-setTimeout(() => {
-  server.close();
-}, 1000);
-process.on("exit", () => {
-  console.log("exit");
-});
+setTimeout(() => { server.close() }, 2000);

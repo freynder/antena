@@ -34,12 +34,8 @@ server1.on("connection", receptor.ConnectionListener());
 
 server2.on("connection", receptor.ConnectionListener());
 
-const sockets = new Set();
-
 const request_middleware = receptor.RequestMiddleware("antena-traffic");
 server3.on("request", (request, response) => {
-  sockets.add(request.socket);
-  sockets.add(response.socket);
   if (!request_middleware(request, response)) {
     if (request.url === "/index.html" || request.url === "/client-browser-bundle.js") {
       Fs.createReadStream(Path.join(__dirname, request.url)).pipe(response);
@@ -52,7 +48,6 @@ server3.on("request", (request, response) => {
 
 const upgrade_middleware = receptor.UpgradeMiddleware("antena-traffic");
 server3.on("upgrade", (request, socket, head) => {
-  sockets.add(socket);
   if (!upgrade_middleware(request, socket, head)) {
     throw new Error("Upgrade request not handled");
   }
@@ -68,13 +63,4 @@ setTimeout(() => {
   server3.close(() => {
     console.log("server3 closed");
   });
-  sockets.forEach((socket) => {
-    if (!socket.destroyed) {
-      socket.destroy();
-    }
-  });
 }, 4000);
-
-process.on("exit", () => {
-  console.log("process exit");
-});
